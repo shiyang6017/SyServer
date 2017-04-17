@@ -37,4 +37,4 @@ $(OBJS_DIR)%.o: %.c %.h
 .PHONY: clean
 
 clean:
-	@-rm -rf $(OBJS_DIR)
+	-rm -rf $(OBJS_DIR)
