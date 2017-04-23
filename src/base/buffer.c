@@ -25,7 +25,7 @@ int buffer_recv(buffer_t* buffer, int fd) {
         if (len == -1) {
             if (errno == EAGAIN)
                 return AGAIN;
-            perror("recv");
+            perror("recv err");
             return ERROR;
         }
         //read_n += len;
@@ -33,7 +33,6 @@ int buffer_recv(buffer_t* buffer, int fd) {
     };  // We may have not read all data
     return AGAIN;
 }
-
 
 /*
  * Return:

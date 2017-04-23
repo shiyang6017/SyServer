@@ -9,7 +9,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BUF_SIZE   (2 * 1024)
+
+#define BUF_SIZE   2048
 
 typedef struct {
     char* begin;
@@ -55,7 +56,10 @@ static inline void buffer_discard_parsed(buffer_t* buffer) {
     int size = buffer_size(buffer);
     // TODO(wgtdkp): Is it safe?
     // There shouldn't be much data remained
-    memcpy(buffer->data, buffer->begin, size);
+    
+    //memcpy(buffer->data, buffer->begin, size); 
+    memmove(buffer->data, buffer->begin, size);
+    
     buffer->begin = buffer->data;
     buffer->end = buffer->begin + size;
 }
@@ -69,6 +73,7 @@ static inline int buffer_margin(buffer_t* buffer) {
 }
 
 static inline void buffer_append(buffer_t* des, buffer_t* src) {
+    assert(des->data != src->data);
     assert(buffer_margin(des) >= buffer_size(src));
     memcpy(des->end, src->begin, buffer_size(src));
     des->end += buffer_size(src);

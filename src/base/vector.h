@@ -1,7 +1,7 @@
 #ifndef _SYSERVER_VECTOR_H_
 #define _SYSERVER_VECTOR_H_
 
-#include "../util.h"
+#include "util.h"
 
 #include <assert.h>
 #include <stdint.h>
