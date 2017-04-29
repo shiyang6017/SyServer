@@ -3,181 +3,181 @@
 
 #define SERVER_NAME     "syServer/0.1"
 
-static char err_page_tail[] =
+static char sy_err_page_tail[] =
     "<hr><center><span style='font-style: italic;'>"
      SERVER_NAME "</span></center>" CRLF
     "</body>" CRLF
     "</html>" CRLF;
 
-static char err_301_page[] =
+static char sy_err_301_page[] =
     "<html>" CRLF
     "<head><title>301 Moved Permanently</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>301 Moved Permanently</h1></center>" CRLF;
 
-static char err_302_page[] =
+static char sy_err_302_page[] =
     "<html>" CRLF
     "<head><title>302 Found</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>302 Found</h1></center>" CRLF;
 
-static char err_303_page[] =
+static char sy_err_303_page[] =
     "<html>" CRLF
     "<head><title>303 See Other</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>303 See Other</h1></center>" CRLF;
 
-static char err_307_page[] =
+static char sy_err_307_page[] =
     "<html>" CRLF
     "<head><title>307 Temporary Redirect</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>307 Temporary Redirect</h1></center>" CRLF;
 
-static char err_400_page[] =
+static char sy_err_400_page[] =
     "<html>" CRLF
     "<head><title>400 Bad Request</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>400 Bad Request</h1></center>" CRLF;
 
-static char err_401_page[] =
+static char sy_err_401_page[] =
     "<html>" CRLF
     "<head><title>401 Authorization Required</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>401 Authorization Required</h1></center>" CRLF;
 
-static char err_402_page[] =
+static char sy_err_402_page[] =
     "<html>" CRLF
     "<head><title>402 Payment Required</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>402 Payment Required</h1></center>" CRLF;
 
-static char err_403_page[] =
+static char sy_err_403_page[] =
     "<html>" CRLF
     "<head><title>403 Forbidden</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>403 Forbidden</h1></center>" CRLF;
 
-static char err_404_page[] =
+static char sy_err_404_page[] =
     "<html>" CRLF
     "<head><title>404 Not Found</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>404 Not Found</h1></center>" CRLF;
 
-static char err_405_page[] =
+static char sy_err_405_page[] =
     "<html>" CRLF
     "<head><title>405 Not Allowed</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>405 Not Allowed</h1></center>" CRLF;
 
-static char err_406_page[] =
+static char sy_err_406_page[] =
     "<html>" CRLF
     "<head><title>406 Not Acceptable</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>406 Not Acceptable</h1></center>" CRLF;
 
-static char err_407_page[] =
+static char sy_err_407_page[] =
     "<html>" CRLF
     "<head><title>407 Proxy Authentication Required</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>407 Proxy Authentication Required</h1></center>" CRLF;
 
-static char err_408_page[] =
+static char sy_err_408_page[] =
     "<html>" CRLF
     "<head><title>408 Request Time-out</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>408 Request Time-out</h1></center>" CRLF;
 
-static char err_409_page[] =
+static char sy_err_409_page[] =
     "<html>" CRLF
     "<head><title>409 Conflict</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>409 Conflict</h1></center>" CRLF;
 
-static char err_410_page[] =
+static char sy_err_410_page[] =
     "<html>" CRLF
     "<head><title>410 Gone</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>410 Gone</h1></center>" CRLF;
 
-static char err_411_page[] =
+static char sy_err_411_page[] =
     "<html>" CRLF
     "<head><title>411 Length Required</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>411 Length Required</h1></center>" CRLF;
 
-static char err_412_page[] =
+static char sy_err_412_page[] =
     "<html>" CRLF
     "<head><title>412 Precondition Failed</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>412 Precondition Failed</h1></center>" CRLF;
 
-static char err_413_page[] =
+static char sy_err_413_page[] =
     "<html>" CRLF
     "<head><title>413 Request Entity Too Large</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>413 Request Entity Too Large</h1></center>" CRLF;
 
-static char err_414_page[] =
+static char sy_err_414_page[] =
     "<html>" CRLF
     "<head><title>414 Request-URI Too Large</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>414 Request-URI Too Large</h1></center>" CRLF;
 
-static char err_415_page[] =
+static char sy_err_415_page[] =
     "<html>" CRLF
     "<head><title>415 Unsupported Media Type</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>415 Unsupported Media Type</h1></center>" CRLF;
 
-static char err_416_page[] =
+static char sy_err_416_page[] =
     "<html>" CRLF
     "<head><title>416 Requested Range Not Satisfiable</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>416 Requested Range Not Satisfiable</h1></center>" CRLF;
 
-static char err_417_page[] =
+static char sy_err_417_page[] =
     "<html>" CRLF
     "<head><title>417 Expectation Failed</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>417 Expectation Failed</h1></center>" CRLF;
 
-static char err_500_page[] =
+static char sy_err_500_page[] =
     "<html>" CRLF
     "<head><title>500 Internal Server Error</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>500 Internal Server Error</h1></center>" CRLF;
 
-static char err_501_page[] =
+static char sy_err_501_page[] =
     "<html>" CRLF
     "<head><title>501 Not Implemented</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>501 Not Implemented</h1></center>" CRLF;
 
-static char err_502_page[] =
+static char sy_err_502_page[] =
     "<html>" CRLF
     "<head><title>502 Bad Gateway</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>502 Bad Gateway</h1></center>" CRLF;
 
-static char err_503_page[] =
+static char sy_err_503_page[] =
     "<html>" CRLF
     "<head><title>503 Service Temporarily Unavailable</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>503 Service Temporarily Unavailable</h1></center>" CRLF;
 
-static char err_504_page[] =
+static char sy_err_504_page[] =
     "<html>" CRLF
     "<head><title>504 Gateway Time-out</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>504 Gateway Time-out</h1></center>" CRLF;
 
-static char err_505_page[] =
+static char sy_err_505_page[] =
     "<html>" CRLF
     "<head><title>505 HTTP Version Not Supported</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
     "<center><h1>505 HTTP Version Not Supported</h1></center>" CRLF;
 
-static char err_507_page[] =
+static char sy_err_507_page[] =
     "<html>" CRLF
     "<head><title>507 Insufficient Storage</title></head>" CRLF
     "<body bgcolor=\"white\">" CRLF
@@ -208,29 +208,29 @@ static string_t mime_tb [][2] = {
     {STRING_INIT("css"),    STRING_INIT("text/css")},
 };
 
-static char* err_page(int status, int* len);
-static const string_t status_repr(int status);
-static void response_put_status_line(request_t* request);
-static void response_put_date(request_t* r);
+static char* sy_err_page(int status, int* len);
+static const string_t sy_status_repr(int status);
+static void sy_response_put_status_line(request_t* request);
+static void sy_response_put_date(request_t* r);
 
-void mime_map_init(void) {
+void sy_mime_map_init(void) {
     int n = sizeof(mime_tb) / sizeof(mime_tb[0]);
     for (int i = 0; i < n; ++i) {
         map_val_t val;
         val.mime = mime_tb[i][1];
-        map_put(&mime_map, &mime_tb[i][0], &val);
+        sy_map_put(&mime_map, &mime_tb[i][0], &val);
     }
 }
 
 
-int response_build(request_t* r) {
+int sy_response_build(request_t* r) {
     buffer_t* b = &r->sb;
     
-    response_put_status_line(r);
-    response_put_date(r);
-    buffer_append_cstring(b, "Server: " SERVER_NAME CRLF);
+    sy_response_put_status_line(r);
+    sy_response_put_date(r);
+    sy_buffer_append_cstring(b, "Server: " SERVER_NAME CRLF);
     
-    // TODO(wgtdkp): Cache-control or Exprires
+    // TODO: Cache-control or Exprires
     switch (r->status) {
     case 304:
         // 304 has no body
@@ -239,7 +239,7 @@ int response_build(request_t* r) {
             r->resource_fd = -1;
         }
     
-        buffer_append_cstring(b, CRLF);
+        sy_buffer_append_cstring(b, CRLF);
         return OK;
     case 100:
         // 100 has no body
@@ -247,30 +247,29 @@ int response_build(request_t* r) {
             close(r->resource_fd);
             r->resource_fd = -1;
         }
-        
-        buffer_append_cstring(b, CRLF);
+        sy_buffer_append_cstring(b, CRLF);
         return OK;
     default:
         break;
     }
     
     string_t content_type = STRING("text/html");
-    map_slot_t* slot = map_get(&mime_map, &r->uri.extension);
+    map_slot_t* slot = sy_map_get(&mime_map, &r->uri.extension);
     if (slot) {
         content_type = slot->val.mime;
     }
-    buffer_append_cstring(b, "Content-Type: ");
-    buffer_append_string(b, &content_type);
-    buffer_append_cstring(b, CRLF);
+    sy_buffer_append_cstring(b, "Content-Type: ");
+    sy_buffer_append_string(b, &content_type);
+    sy_buffer_append_cstring(b, CRLF);
     
-    buffer_print(b, "Content-Length: %d" CRLF,
+    sy_buffer_print(b, "Content-Length: %d" CRLF,
                  r->resource_len);
     
-    buffer_append_cstring(b, CRLF);
+    sy_buffer_append_cstring(b, CRLF);
     return OK;
 }
 
-static void response_put_status_line(request_t* r) {
+static void sy_response_put_status_line(request_t* r) {
     buffer_t* b = &r->sb;
     string_t version;
     if (r->version.minor == 1) {
@@ -279,56 +278,54 @@ static void response_put_status_line(request_t* r) {
         version = STRING("HTTP/1.0 ");
     }
     
-    buffer_append_string(b, &version);
-    string_t status = status_repr(r->status);
-    buffer_append_string(b, &status);
-    buffer_append_cstring(b, CRLF);
+    sy_buffer_append_string(b, &version);
+    string_t status = sy_status_repr(r->status);
+    sy_buffer_append_string(b, &status);
+    sy_buffer_append_cstring(b, CRLF);
 }
 
-static void response_put_date(request_t* r) {
-    buffer_t* b = &r->sb;
+static void sy_response_put_date(request_t* r) {
     
+    buffer_t* b = &r->sb;   
     time_t t = time(NULL);
     struct tm* tm = localtime(&t);
-    b->end += strftime(b->end, buffer_margin(b),
+    b->end += sy_strftime(b->end, sy_buffer_margin(b),
                        "Date: %a, %d %b %Y %H:%M:%S GMT" CRLF, tm);
 }
 
-int response_build_err(request_t* r, int err) {
+int sy_response_build_err(request_t* r, int err) {
     buffer_t* b = &r->sb;
-    //buffer_t* buffer = &response->buffer;
+    
     r->status = err;
 
-    // To make things simple
-    // We ensure that the buffer can contain those headers and body
-    response_put_status_line(r);
-    response_put_date(r);
-    buffer_append_cstring(b, "Server: " SERVER_NAME CRLF);
+    sy_response_put_status_line(r);
+    sy_response_put_date(r);
+    sy_buffer_append_cstring(b, "Server: " SERVER_NAME CRLF);
    
     r->keep_alive = false;
-    buffer_append_cstring(b, "Connection: close" CRLF);
-    buffer_append_cstring(b, "Content-Type: text/html" CRLF);
+    sy_buffer_append_cstring(b, "Connection: close" CRLF);
+    sy_buffer_append_cstring(b, "Content-Type: text/html" CRLF);
     
     int page_len;
-    int page_tail_len = sizeof(err_page_tail) - 1;
-    char* page = err_page(r->status, &page_len);
+    int page_tail_len = sizeof(sy_err_page_tail) - 1;
+    char* page = sy_err_page(r->status, &page_len);
     if (page != NULL) {
-        buffer_print(b, "Content-Length: %d" CRLF,
+        sy_buffer_print(b, "Content-Length: %d" CRLF,
                 page_len + page_tail_len);
     }
     
-    buffer_append_cstring(b, CRLF);
+    sy_buffer_append_cstring(b, CRLF);
     if (page != NULL) {
-        buffer_append_string(b, &(string_t){page, page_len});
-        buffer_append_string(b, &(string_t){err_page_tail, page_tail_len});
+        sy_buffer_append_string(b, &(string_t){page, page_len});
+        sy_buffer_append_string(b, &(string_t){err_page_tail, page_tail_len});
     }
-    connection_disable_in(r->c);
-    connection_enable_out(r->c);
+    sy_connection_disable_in(r->c);
+    sy_connection_enable_out(r->c);
     r->body_done = true;
     return OK;
 }
 
-static char* err_page(int status, int* len) {
+static char* sy_err_page(int status, int* len) {
 #   define ERR_CASE(err)                        \
     case err:                                   \
         *len = sizeof(err_##err##_page) - 1;    \
@@ -389,10 +386,10 @@ static char* err_page(int status, int* len) {
         return NULL;
     }
     
-    return NULL;    
+    return NULL;   
 }
 
-static const string_t status_repr(int status) {
+static const string_t sy_status_repr(int status) {
     switch (status) {
     case 100: return STRING("100 Continue");
     case 101: return STRING("101 Switching Protocols");
@@ -439,5 +436,5 @@ static const string_t status_repr(int status) {
         return string_null;
     }
     
-    return string_null;    // Make compile happy
+    return string_null;    
 }
