@@ -14,12 +14,12 @@ typedef struct {
     void* data;
 } vector_t;
 
-int vector_init(vector_t* vec, int width, int size);
-int vector_reserve(vector_t* vec, int c);
-int vector_resize(vector_t* vec, int new_size);
-void vector_clear(vector_t* vec);
+int sy_vector_init(vector_t* vec, int width, int size);
+int sy_vector_reserve(vector_t* vec, int c);
+int sy_vector_resize(vector_t* vec, int new_size);
+void sy_vector_clear(vector_t* vec);
 
-static inline void* vector_at(vector_t* vec, int i) {
+static inline void* sy_vector_at(vector_t* vec, int i) {
     if ( i >= vec->size) {
         return NULL;
     } else {
@@ -27,17 +27,17 @@ static inline void* vector_at(vector_t* vec, int i) {
     }
 }
 
-static inline void* vector_back(vector_t* vec) {
+static inline void* sy_vector_back(vector_t* vec) {
     return vector_at(vec, vec->size - 1);
 }
 
-static inline void* vector_push(vector_t* vec) {
+static inline void* sy_vector_push(vector_t* vec) {
     if (vector_resize(vec, vec->size + 1) != OK)
         return NULL;
     return vector_back(vec);
 }
 
-static inline void vector_pop(vector_t* vec) {
+static inline void sy_vector_pop(vector_t* vec) {
     assert(vec->size > 0);
     --vec->size;
 }

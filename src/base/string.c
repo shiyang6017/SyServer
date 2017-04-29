@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <assert.h>
 /* ptr != NULL: err*/
-int string_print(const char* format, ...)
+int sy_string_print(const char* format, ...)
 {
     int ret = 0;
     va_list args;
@@ -27,7 +27,7 @@ int string_print(const char* format, ...)
     va_end(args);
     return ret;
 }
-int string_cmp(const string_t* lhs, const string_t* rhs) 
+int sy_string_cmp(const string_t* lhs, const string_t* rhs) 
 {
     if (lhs->len == rhs->len && lhs->data == rhs->data) {
         return 0;
@@ -50,21 +50,16 @@ int string_cmp(const string_t* lhs, const string_t* rhs)
     return *rptr == '\0' ? 1: -1;
 }
 
-bool string_eq(const string_t* lhs, const string_t* rhs) {
+bool sy_string_eq(const string_t* lhs, const string_t* rhs) {
     return string_cmp(lhs, rhs) == 0 ? true : false;
 }
 
-struct A {
-    string_t b;
-    int i;
-};
 /*
 int main() {
     string_t str1 = STRING_INIT("HELLO");
     string_t str2 = {0};
     printf("%d", string_cmp(&str1, &str2));
     printf("%d", string_eq(&str1, &str2));
-
     return 0;
 }
 */

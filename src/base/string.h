@@ -15,32 +15,32 @@ typedef struct {
 
 static const string_t STRING_NULL = {NULL, 0};
 
-static inline void string_init(string_t* str) {
+static inline void sy_string_init(string_t* str) {
     str->data = NULL;
     str->len = 0;
 }
 
-static inline char* string_find(string_t* str, char ch) {
+static inline char* sy_string_find(string_t* str, char ch) {
     for (int i = 0; i < str->len; ++i)
         if (str->data[i] == ch)
             return &str->data[i];
     return NULL;
 }
 
-static inline string_t string_setto(char* cstr, int len) {
+static inline string_t sy_string_setto(char* cstr, int len) {
     return (string_t){cstr, len};
 }
 
-static inline char* string_end(string_t* str) {
+static inline char* sy_string_end(string_t* str) {
     return str->data + str->len;
 }
 
-static inline void string_free(string_t* str) {
+static inline void sy_string_free(string_t* str) {
     free(str->data);
 }
 
-int string_string(const char* format, ...);
-int string_cmp(const string_t* lhs, const string_t* rhs);
-bool string_eq(const string_t* lhs, const string_t* rhs);
+int sy_string_string(const char* format, ...);
+int sy_string_cmp(const string_t* lhs, const string_t* rhs);
+bool sy_string_eq(const string_t* lhs, const string_t* rhs);
 
 #endif

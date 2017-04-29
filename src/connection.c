@@ -11,7 +11,7 @@ pool_t accept_pool;
 static int heap_size = 0;
 static connection_t* connections[MAX_CONNECTION + 1] = {NULL};
 
-connection_t* open_connection(int fd) {
+connection_t* sy_open_connection(int fd) {
     connection_t* c = pool_alloc(&connection_pool);
     c->active_time = time(NULL);
     c->fd = fd;
@@ -33,7 +33,7 @@ connection_t* open_connection(int fd) {
     return c;
 }
 
-connection_t* uwsgi_open_connection(request_t* r, location_t* loc) {
+connection_t* sy_uwsgi_open_connection(request_t* r, location_t* loc) {
     assert(loc->pass);
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -69,7 +69,7 @@ connection_t* uwsgi_open_connection(request_t* r, location_t* loc) {
     return c;
 }
 
-void close_connection(connection_t* c) {
+void sy_close_connection(connection_t* c) {
     connection_unregister(c);
     // The events automatically removed
     close(c->fd);
@@ -84,7 +84,7 @@ void close_connection(connection_t* c) {
     pool_free(&connection_pool, c);
 }
 
-int add_listener(int* listen_fd) {
+int sy_add_listener(int* listen_fd) {
     epoll_event ev;
     set_nonblocking(*listen_fd);
     ev.events = EVENTS_IN;
@@ -92,7 +92,7 @@ int add_listener(int* listen_fd) {
     return epoll_ctl(epoll_fd, EPOLL_CTL_ADD, *listen_fd, &ev);
 }
 
-int set_nonblocking(int fd) {
+int sy_set_nonblocking(int fd) {
     int flag = fcntl(fd, F_GETFL, 0);
     ABORT_ON(flag == -1, "fcntl: F_GETFL");
     flag |= O_NONBLOCK;
@@ -104,7 +104,7 @@ int set_nonblocking(int fd) {
 #define L(i)    (i * 2)
 #define R(i)    (L(i) + 1)
 
-static void heap_shift_up(int idx) {
+static void sy_heap_shift_up(int idx) {
     int k = idx;
     connection_t* c = connections[k];
     while (P(k) > 0) {
@@ -119,7 +119,7 @@ static void heap_shift_up(int idx) {
     connections[k]->heap_idx = k;
 }
 
-static void heap_shift_down(int idx) {
+static void sy_heap_shift_down(int idx) {
     int k = idx;
     connection_t* c = connections[k];
     while (true) {
@@ -140,48 +140,48 @@ static void heap_shift_down(int idx) {
     connections[k]->heap_idx = k;
 }
 
-void connection_activate(connection_t* c) {
+void sy_connection_activate(connection_t* c) {
     c->active_time = time(NULL);
-    heap_shift_down(c->heap_idx);
+    sy_heap_shift_down(c->heap_idx);
     if (c->side == C_SIDE_FRONT && c->r->uc)
-        connection_activate(c->r->uc);
+        sy_connection_activate(c->r->uc);
 }
 
-void connection_expire(connection_t* c) {
-    c->active_time = time(NULL) - server_cfg.timeout - 1;
-    heap_shift_up(c->heap_idx);
+void sy_connection_expire(connection_t* c) {
+    c->active_time = time(NULL) - server_cfg.timeout - 1; // sweep later
+    sy_heap_shift_up(c->heap_idx);
     if (c->side == C_SIDE_FRONT && c->r->uc)
-        connection_expire(c->r->uc);
+        sy_connection_expire(c->r->uc);
 }
 
-bool connection_is_expired(connection_t* c) {
+bool sy_connection_is_expired(connection_t* c) {
   return c->active_time + server_cfg.timeout < time(NULL);
 }
 
 // Return: 0, success; -1, fail;
-int connection_register(connection_t* c) {
+int sy_connection_register(connection_t* c) {
     if (heap_size + 1 > MAX_CONNECTION)
       return -1;
     connections[++heap_size] = c;
-    heap_shift_up(heap_size);
+    sy_heap_shift_up(heap_size);
     return 0;
 }
 
-void connection_unregister(connection_t* c) {
+void sy_connection_unregister(connection_t* c) {
     assert(heap_size > 0);
     connections[c->heap_idx] = connections[heap_size];
     connections[c->heap_idx]->heap_idx = c->heap_idx;
     --heap_size;
     if (heap_size > 0) {
-        heap_shift_down(c->heap_idx);
+        sy_heap_shift_down(c->heap_idx);
     }
 }
 
-void connection_sweep(void) {
+void sy_connection_sweep(void) {
     while (heap_size > 0) {
-        connection_t* c = connections[1];
+        sy_connection_t* c = connections[1];
         if (time(NULL) >= c->active_time + server_cfg.timeout) {
-            close_connection(c);
+            sy_close_connection(c);
         } else {
             break;
         }

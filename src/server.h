@@ -78,8 +78,8 @@ typedef struct {
 
 extern config_t server_cfg;
 
-int config_load(config_t* cfg);
-void config_destroy(config_t* cfg);
+int sy_config_load(config_t* cfg);
+void sy_config_destroy(config_t* cfg);
 
 /*
  * Connection
@@ -264,19 +264,19 @@ typedef struct connection {
 #define HTTP_1_1    (version_t){1, 1}
 #define HTTP_1_0    (version_t){1, 0}
 
-connection_t* open_connection(int fd);
-connection_t* uwsgi_open_connection(request_t* r, location_t* loc);
-void close_connection(connection_t* c);
-int add_listener(int* listen_fd);
-int set_nonblocking(int fd);
-void connection_activate(connection_t* c);
-void connection_expire(connection_t* c);
-bool connection_is_expired(connection_t* c);
-int connection_register(connection_t* c);
-void connection_unregister(connection_t* c);
-void connection_sweep(void);
+connection_t* sy_open_connection(int fd);
+connection_t* sy_uwsgi_open_connection(request_t* r, location_t* loc);
+void sy_close_connection(connection_t* c);
+int sy_add_listener(int* listen_fd);
+int sy_set_nonblocking(int fd);
+void sy_connection_activate(connection_t* c);
+void sy_connection_expire(connection_t* c);
+bool sy_connection_is_expired(connection_t* c);
+int sy_connection_register(connection_t* c);
+void sy_connection_unregister(connection_t* c);
+void sy_connection_sweep(void);
 
-static inline int connection_disable_in(connection_t* c) {
+static inline int sy_connection_disable_in(connection_t* c) {
     if (c->event.events & EVENTS_IN) {
         c->event.events &= ~EVENTS_IN;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -285,7 +285,7 @@ static inline int connection_disable_in(connection_t* c) {
     return 0;
 }
 
-static inline int connection_enable_in(connection_t* c) {
+static inline int sy_connection_enable_in(connection_t* c) {
     if (!(c->event.events & EVENTS_IN)) {
         c->event.events |= EVENTS_IN;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -294,7 +294,7 @@ static inline int connection_enable_in(connection_t* c) {
     return 0;
 }
 
-static inline int connection_disable_out(connection_t* c) {
+static inline int sy_connection_disable_out(connection_t* c) {
     if (c->event.events & EVENTS_OUT) {
         c->event.events &= ~EVENTS_OUT;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -303,7 +303,7 @@ static inline int connection_disable_out(connection_t* c) {
     return 0;
 }
 
-static inline int connection_enable_out(connection_t* c) {
+static inline int sy_connection_enable_out(connection_t* c) {
     if (!(c->event.events & EVENTS_OUT)) {
         c->event.events |= EVENTS_OUT;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -316,24 +316,23 @@ static inline int connection_enable_out(connection_t* c) {
  * Request
  */
 typedef int (*header_processor_t)(request_t* request, int offset);
-void header_map_init(void);
-void request_init(request_t* r, connection_t* c);
-void request_clear(request_t* request);
-void request_release(request_t* request);
-int handle_request(connection_t* c);
-int handle_response(connection_t* c);
-int handle_pass(connection_t* uc);
-int handle_upstream(connection_t* uc);
-int send_response_buffer(request_t* r);
-int send_response_file(request_t* r);
+void sy_header_map_init(void);
+void sy_request_init(request_t* r, connection_t* c);
+void sy_request_clear(request_t* request);
+void sy_request_release(request_t* request);
+int sy_handle_request(connection_t* c);
+int sy_handle_response(connection_t* c);
+int sy_handle_pass(connection_t* uc);
+int sy_handle_upstream(connection_t* uc);
+int sy_send_response_buffer(request_t* r);
+int sy_send_response_file(request_t* r);
 /*
  * Response
  */
-void mime_map_init(void);
+void sy_mime_map_init(void);
 
-//int handle_response(connection_t* c);
-int response_build(request_t* r);
-int response_build_err(request_t* request, int err);
+int sy_response_build(request_t* r);
+int sy_response_build_err(request_t* request, int err);
 
 
 /*
@@ -387,18 +386,12 @@ enum {
 };
 
 
-void parse_init(void);
-int parse_request_line(request_t* request);
-int parse_header_line(request_t* request);
-int parse_request_body_chunked(request_t* request);
-int parse_request_body_identity(request_t* request);
-int parse_header_accept(request_t* request);
-void parse_header_host(request_t* request);
-
-/*
- * uWSGI
- */
-//int uwsgi_start_request(connection_t* c);
-//int uwsgi_open_connection(request_t* r, location_t* loc);
+void sy_parse_init(void);
+int sy_parse_request_line(request_t* request);
+int sy_parse_header_line(request_t* request);
+int sy_parse_request_body_chunked(request_t* request);
+int sy_parse_request_body_identity(request_t* request);
+int sy_parse_header_accept(request_t* request);
+void sy_parse_header_host(request_t* request);
 
 #endif

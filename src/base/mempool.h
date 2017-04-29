@@ -21,9 +21,9 @@ typedef struct {
     vector_t chunks;
 } pool_t;
 
-int chunk_init(chunk_t* chunk, int width, int size);
-int pool_init(pool_t* pool, int width, int chunk_size, int nchunks);
-void* pool_alloc(pool_t* pool);
-void pool_clear(pool_t* pool);
+int sy_chunk_init(chunk_t* chunk, int width, int size);
+int sy_pool_init(pool_t* pool, int width, int chunk_size, int nchunks);
+void* sy_pool_alloc(pool_t* pool);
+void sy_pool_clear(pool_t* pool);
 
 #endif

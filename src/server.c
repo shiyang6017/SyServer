@@ -1,16 +1,16 @@
 #include "server.h"
 
-static int startup(uint16_t port);
-static int server_init(void);
-static void usage(void);
+static int sy_startup(uint16_t port);
+static int sy_server_init(void);
+static void sy_usage(void);
 
-static void usage(void) {
+static void sy_usage(void) {
     printf("Usage:\n"
            "    syServer [-s signal]    signal could only be stop\n");
     exit(OK);
 }
 
-static void save_pid(int pid) {
+static void sy_save_pid(int pid) {
     FILE* fp = fopen(INSTALL_DIR "syServer.pid", "w");
     if (fp == NULL) {
         ju_error("open pid file: " INSTALL_DIR "syServer.pid failed");
@@ -20,7 +20,7 @@ static void save_pid(int pid) {
     fclose(fp);
 }
 
-static int get_pid(void) {
+static int sy_get_pid(void) {
     FILE* fp = fopen(INSTALL_DIR "syServer.pid", "a+");
     if (fp == NULL) {
         ju_error("open pid file: " INSTALL_DIR "syServer.pid failed");
@@ -31,7 +31,7 @@ static int get_pid(void) {
     return pid;
 }
 
-static void send_signal(const char* signal) {
+static void sy_send_signal(const char* signal) {
     if (strncasecmp(signal, "stop", 4) == 0) {
         kill(-get_pid(), SIGINT);
     } else {
@@ -40,14 +40,14 @@ static void send_signal(const char* signal) {
     exit(OK);
 }
 
-static void sig_int(int signo) {
+static void sy_sig_int(int signo) {
     ju_log("syServer exited...");
     save_pid(0);
     kill(-getpid(), SIGINT);
     raise(SIGKILL);
 }
 
-static int startup(uint16_t port) {
+static int sy_startup(uint16_t port) {
     // If the client closed the c, then it will cause SIGPIPE
     // Here simplely ignore this SIG
     signal(SIGPIPE, SIG_IGN);
@@ -82,49 +82,49 @@ static int startup(uint16_t port) {
     return listen_fd;
 }
 
-static int server_init(void) {
+static int sy_server_init(void) {
     // Set limits
     struct rlimit nofile_limit = {65535, 65535};
     setrlimit(RLIMIT_NOFILE, &nofile_limit);
 
-    parse_init();
-    header_map_init();
-    mime_map_init();
+    sy_parse_init();
+    sy_header_map_init();
+    sy_mime_map_init();
 
-    pool_init(&connection_pool, sizeof(connection_t), 8, 0);
-    pool_init(&request_pool, sizeof(request_t), 8, 0);
+    sy_pool_init(&connection_pool, sizeof(connection_t), 8, 0);
+    sy_pool_init(&request_pool, sizeof(request_t), 8, 0);
 
     epoll_fd = epoll_create1(0);
-    ABORT_ON(epoll_fd == ERROR, "epoll_create1");
+    SY_ABORT_ON(epoll_fd == ERROR, "epoll_create1");
     return OK;
 }
 
-static void accept_connection(int listen_fd) {
+static void sy_accept_connection(int listen_fd) {
     while (true) {
         int c_fd = accept(listen_fd, NULL, NULL);
         if (c_fd == ERROR) {
-            ERR_ON((errno != EWOULDBLOCK), "accept");
+            SY_ERR_ON((errno != EWOULDBLOCK), "accept");
             break;
         }
-        open_connection(c_fd);
+        sy_open_connection(c_fd);
     }
 }
 
 int main(int argc, char* argv[]) {
     if (argc >= 2) {
         if (argv[1][0] != '-') {
-            usage();
+            sy_usage();
         }
         switch (argv[1][1]) {
-        case 'h': usage(); break;
+        case 'h': sy_usage(); break;
         case 's': send_signal(argv[2]); break;
-        default: usage(); break;
+        default: sy_usage(); break;
         }
     }
 
     get_pid();
 
-    if (config_load(&server_cfg) != OK) {
+    if (sy_config_load(&server_cfg) != OK) {
         raise(SIGINT);
     }
 
@@ -133,15 +133,15 @@ int main(int argc, char* argv[]) {
     }
 
     if (server_cfg.daemon) {
-        daemon(1, 0);
+        sy_daemon(1, 0);
     }
 
     if (get_pid() != 0) {
-        ju_error("julia has already been running...");
+        sy_error("syServer has already been running...");
         exit(ERROR);
     }
 
-    save_pid(getpid());
+    sy_save_pid(getpid());
 
     int nworker = 0;
     while (true) {
@@ -151,58 +151,57 @@ int main(int argc, char* argv[]) {
             if (WIFEXITED(stat))
                 raise(SIGINT);
             // Worker unexpectly exited, restart it
-            ju_log("julia failed, restarting...");
+            sy_log("syServer failed, restarting...");
         }
         int pid = fork();
-        ABORT_ON(pid < 0, "fork");
+        SY_ABORT_ON(pid < 0, "fork");
         if (pid == 0) {
             break;
         }
-        int* worker = vector_at(&server_cfg.workers, nworker++);
+        int* worker = sy_vector_at(&server_cfg.workers, nworker++);
         *worker = pid;
     }
 
 work:;
     int listen_fd;
-    if (server_init() != OK ||
-        (listen_fd = startup(server_cfg.port)) < 0) {
-        ju_error("startup server failed");
+    if (sy_server_init() != OK ||
+        (listen_fd = sy_startup(server_cfg.port)) < 0) {
+        sy_error("startup server failed");
         exit(ERROR);
     }
 
-    ju_log("julia started...");
-    ju_log("listening at port: %u", server_cfg.port);
-    assert(add_listener(&listen_fd) != ERROR);
+    sy_log("syServer started...");
+    sy_log("listening at port: %u", server_cfg.port);
+    assert(sy_add_listener(&listen_fd) != ERROR);
 
 wait:;
     int nfds = epoll_wait(epoll_fd, events, MAX_EVENT_NUM, 30);
     if (nfds == ERROR) {
-        ABORT_ON(errno != EINTR, "epoll_wait");
+        SY_ABORT_ON(errno != EINTR, "epoll_wait");
     }
 
-    // TODO(wgtdkp): multithreading here: separate fds to several threads
     for (int i = 0; i < nfds; ++i) {
         int fd = *((int*)(events[i].data.ptr));
         if (fd == listen_fd) {
             // We could accept more than one c per request
-            accept_connection(listen_fd);
+            sy_accept_connection(listen_fd);
             continue;
         }
 
         int err;
         connection_t* c = events[i].data.ptr;
-        if (!connection_is_expired(c) && events[i].events & EPOLLIN) {
+        if (!sy_connection_is_expired(c) && events[i].events & EPOLLIN) {
             err = (c->side == C_SIDE_BACK) ?
-                  handle_upstream(c): handle_request(c);
-            err == ERROR ? connection_expire(c): connection_activate(c);
+                  sy_handle_upstream(c): sy_handle_request(c);
+            err == ERROR ? sy_connection_expire(c): sy_connection_activate(c);
         }
-        if (!connection_is_expired(c) && events[i].events & EPOLLOUT) {
+        if (!sy_connection_is_expired(c) && events[i].events & EPOLLOUT) {
             err = (c->side == C_SIDE_BACK) ?
-                  handle_pass(c): handle_response(c);
-            err == ERROR ? connection_expire(c): connection_activate(c);
+                  sy_handle_pass(c): sy_handle_response(c);
+            err == ERROR ? sy_connection_expire(c): sy_connection_activate(c);
         }
     }
-    connection_sweep();
+    sy_connection_sweep();
     goto wait;
 
     close(epoll_fd);
