@@ -185,46 +185,47 @@ static char sy_err_507_page[] =
 
 
 #define MIME_MAP_SIZE       (131)
-static map_slot_t mime_map_data[2 * MIME_MAP_SIZE];
+static sy_map_slot_t mime_map_data[2 * MIME_MAP_SIZE];
 
-static map_t mime_map = {
+static sy_map_t mime_map = {
     .size = MIME_MAP_SIZE,
     .max_size = 2 * MIME_MAP_SIZE,
     .data = mime_map_data,
     .cur = mime_map_data + MIME_MAP_SIZE
 };
 
-static string_t mime_tb [][2] = {
-    {STRING_INIT("htm"),    STRING_INIT("text/html")},
-    {STRING_INIT("html"),   STRING_INIT("text/html")},
-    {STRING_INIT("gif"),    STRING_INIT("image/gif")},
-    {STRING_INIT("ico"),    STRING_INIT("image/x-icon")},
-    {STRING_INIT("jpeg"),   STRING_INIT("image/jpeg")},
-    {STRING_INIT("jpg"),    STRING_INIT("image/jpeg")},
-    {STRING_INIT("png"),    STRING_INIT("image/png")},
-    {STRING_INIT("svg"),    STRING_INIT("image/svg+xml")},
-    {STRING_INIT("txt"),    STRING_INIT("text/plain")},
-    {STRING_INIT("zip"),    STRING_INIT("application/zip")},
-    {STRING_INIT("css"),    STRING_INIT("text/css")},
+static sy_string_t mime_tb [][2] = {
+    {SY_STRING_INIT("htm"),    SY_STRING_INIT("text/html")},
+    {SY_STRING_INIT("html"),   SY_STRING_INIT("text/html")},
+    {SY_STRING_INIT("gif"),    SY_STRING_INIT("image/gif")},
+    {SY_STRING_INIT("ico"),    SY_STRING_INIT("image/x-icon")},
+    {SY_STRING_INIT("jpeg"),   SY_STRING_INIT("image/jpeg")},
+    {SY_STRING_INIT("jpg"),    SY_STRING_INIT("image/jpeg")},
+    {SY_STRING_INIT("png"),    SY_STRING_INIT("image/png")},
+    {SY_STRING_INIT("svg"),    SY_STRING_INIT("image/svg+xml")},
+    {SY_STRING_INIT("txt"),    SY_STRING_INIT("text/plain")},
+    {SY_STRING_INIT("zip"),    SY_STRING_INIT("application/zip")},
+    {SY_STRING_INIT("css"),    SY_STRING_INIT("text/css")},
 };
 
+
 static char* sy_err_page(int status, int* len);
-static const string_t sy_status_repr(int status);
-static void sy_response_put_status_line(request_t* request);
-static void sy_response_put_date(request_t* r);
+static const sy_string_t sy_status_repr(int status);
+static void sy_response_put_status_line(sy_request_t* request);
+static void sy_response_put_date(sy_request_t* r);
 
 void sy_mime_map_init(void) {
     int n = sizeof(mime_tb) / sizeof(mime_tb[0]);
     for (int i = 0; i < n; ++i) {
-        map_val_t val;
+        sy_map_val_t val;
         val.mime = mime_tb[i][1];
         sy_map_put(&mime_map, &mime_tb[i][0], &val);
     }
 }
 
 
-int sy_response_build(request_t* r) {
-    buffer_t* b = &r->sb;
+int sy_response_build(sy_request_t* r) {
+    sy_buffer_t* b = &r->sb;
     
     sy_response_put_status_line(r);
     sy_response_put_date(r);
@@ -253,8 +254,8 @@ int sy_response_build(request_t* r) {
         break;
     }
     
-    string_t content_type = STRING("text/html");
-    map_slot_t* slot = sy_map_get(&mime_map, &r->uri.extension);
+    sy_string_t content_type = SY_STRING("text/html");
+    sy_map_slot_t* slot = sy_map_get(&mime_map, &r->uri.extension);
     if (slot) {
         content_type = slot->val.mime;
     }
@@ -269,32 +270,32 @@ int sy_response_build(request_t* r) {
     return OK;
 }
 
-static void sy_response_put_status_line(request_t* r) {
-    buffer_t* b = &r->sb;
-    string_t version;
+static void sy_response_put_status_line(sy_request_t* r) {
+    sy_buffer_t* b = &r->sb;
+    sy_string_t version;
     if (r->version.minor == 1) {
-        version = STRING("HTTP/1.1 ");
+        version = SY_STRING("HTTP/1.1 ");
     } else {
-        version = STRING("HTTP/1.0 ");
+        version = SY_STRING("HTTP/1.0 ");
     }
     
     sy_buffer_append_string(b, &version);
-    string_t status = sy_status_repr(r->status);
+    sy_string_t status = sy_status_repr(r->status);
     sy_buffer_append_string(b, &status);
     sy_buffer_append_cstring(b, CRLF);
 }
 
-static void sy_response_put_date(request_t* r) {
+static void sy_response_put_date(sy_request_t* r) {
     
-    buffer_t* b = &r->sb;   
+    sy_buffer_t* b = &r->sb;   
     time_t t = time(NULL);
     struct tm* tm = localtime(&t);
-    b->end += sy_strftime(b->end, sy_buffer_margin(b),
+    b->end += strftime(b->end, sy_buffer_margin(b),
                        "Date: %a, %d %b %Y %H:%M:%S GMT" CRLF, tm);
 }
 
-int sy_response_build_err(request_t* r, int err) {
-    buffer_t* b = &r->sb;
+int sy_response_build_err(sy_request_t* r, int err) {
+    sy_buffer_t* b = &r->sb;
     
     r->status = err;
 
@@ -316,8 +317,8 @@ int sy_response_build_err(request_t* r, int err) {
     
     sy_buffer_append_cstring(b, CRLF);
     if (page != NULL) {
-        sy_buffer_append_string(b, &(string_t){page, page_len});
-        sy_buffer_append_string(b, &(string_t){err_page_tail, page_tail_len});
+        sy_buffer_append_string(b, &(sy_string_t){page, page_len});
+        sy_buffer_append_string(b, &(sy_string_t){sy_err_page_tail, page_tail_len});
     }
     sy_connection_disable_in(r->c);
     sy_connection_enable_out(r->c);
@@ -326,10 +327,10 @@ int sy_response_build_err(request_t* r, int err) {
 }
 
 static char* sy_err_page(int status, int* len) {
-#   define ERR_CASE(err)                        \
+#   define SY_ERR_CASE(err)                        \
     case err:                                   \
-        *len = sizeof(err_##err##_page) - 1;    \
-        return err_##err##_page;    
+        *len = sizeof(sy_err_##err##_page) - 1;    \
+        return sy_err_##err##_page;    
 
     switch(status) {
     case 100:
@@ -344,41 +345,41 @@ static char* sy_err_page(int status, int* len) {
     case 300:
         return NULL;
    
-    ERR_CASE(301)
-    ERR_CASE(302)
-    ERR_CASE(303)
+    SY_ERR_CASE(301)
+    SY_ERR_CASE(302)
+    SY_ERR_CASE(303)
     case 304: 
     case 305:
         assert(false);
         return NULL;
-    ERR_CASE(307)
-    ERR_CASE(400)
-    ERR_CASE(401)
-    ERR_CASE(402)
-    ERR_CASE(403)
-    ERR_CASE(404)
-    ERR_CASE(405)
-    ERR_CASE(406)
-    ERR_CASE(407)
-    ERR_CASE(408)
-    ERR_CASE(409)
-    ERR_CASE(410)
-    ERR_CASE(411)
-    ERR_CASE(412)
-    ERR_CASE(413)
-    ERR_CASE(414)
-    ERR_CASE(415)
-    ERR_CASE(416)
-    ERR_CASE(417)
-    ERR_CASE(500)
-    ERR_CASE(501)
-    ERR_CASE(502)
-    ERR_CASE(503)
-    ERR_CASE(504)
-    ERR_CASE(505)
-    ERR_CASE(507)
+    SY_ERR_CASE(307)
+    SY_ERR_CASE(400)
+    SY_ERR_CASE(401)
+    SY_ERR_CASE(402)
+    SY_ERR_CASE(403)
+    SY_ERR_CASE(404)
+    SY_ERR_CASE(405)
+    SY_ERR_CASE(406)
+    SY_ERR_CASE(407)
+    SY_ERR_CASE(408)
+    SY_ERR_CASE(409)
+    SY_ERR_CASE(410)
+    SY_ERR_CASE(411)
+    SY_ERR_CASE(412)
+    SY_ERR_CASE(413)
+    SY_ERR_CASE(414)
+    SY_ERR_CASE(415)
+    SY_ERR_CASE(416)
+    SY_ERR_CASE(417)
+    SY_ERR_CASE(500)
+    SY_ERR_CASE(501)
+    SY_ERR_CASE(502)
+    SY_ERR_CASE(503)
+    SY_ERR_CASE(504)
+    SY_ERR_CASE(505)
+    SY_ERR_CASE(507)
 
-#   undef ERR_CASE 
+#   undef SY_ERR_CASE 
     
     default:
         assert(false);
@@ -389,52 +390,52 @@ static char* sy_err_page(int status, int* len) {
     return NULL;   
 }
 
-static const string_t sy_status_repr(int status) {
+static const sy_string_t sy_status_repr(int status) {
     switch (status) {
-    case 100: return STRING("100 Continue");
-    case 101: return STRING("101 Switching Protocols");
-    case 200: return STRING("200 OK");
-    case 201: return STRING("201 Created");
-    case 202: return STRING("202 Accepted");
-    case 203: return STRING("203 Non-Authoritative Information");
-    case 204: return STRING("204 No Content");
-    case 205: return STRING("205 Reset Content");
-    case 206: return STRING("206 Partial Content");
-    case 300: return STRING("300 Multiple Choices");
-    case 301: return STRING("301 Moved Permanently");
-    case 302: return STRING("302 Found");
-    case 303: return STRING("303 See Other");
-    case 304: return STRING("304 Not Modified");
-    case 305: return STRING("305 Use Proxy");
-    case 307: return STRING("307 Temporary Redirect");
-    case 400: return STRING("400 Bad Request");
-    case 401: return STRING("401 Unauthorized");
-    case 402: return STRING("402 Payment Required");
-    case 403: return STRING("403 Forbidden");
-    case 404: return STRING("404 Not Found");
-    case 405: return STRING("405 Method Not Allowed");
-    case 406: return STRING("406 Not Acceptable");
-    case 407: return STRING("407 Proxy Authentication Required");
-    case 408: return STRING("408 Request Time-out");
-    case 409: return STRING("409 Conflict");
-    case 410: return STRING("410 Gone");
-    case 411: return STRING("411 Length Required");
-    case 412: return STRING("412 Precondition Failed");
-    case 413: return STRING("413 Request Entity Too Large");
-    case 414: return STRING("414 Request-URI Too Large");
-    case 415: return STRING("415 Unsupported Media Type");
-    case 416: return STRING("416 Requested range not satisfiable");
-    case 417: return STRING("417 Expectation Failed");
-    case 500: return STRING("500 Internal Server Error");
-    case 501: return STRING("501 Not Implemented");
-    case 502: return STRING("502 Bad Gateway");
-    case 503: return STRING("503 Service Unavailable");
-    case 504: return STRING("504 Gateway Time-out");
-    case 505: return STRING("505 HTTP Version not supported");
+    case 100: return SY_STRING("100 Continue");
+    case 101: return SY_STRING("101 Switching Protocols");
+    case 200: return SY_STRING("200 OK");
+    case 201: return SY_STRING("201 Created");
+    case 202: return SY_STRING("202 Accepted");
+    case 203: return SY_STRING("203 Non-Authoritative Information");
+    case 204: return SY_STRING("204 No Content");
+    case 205: return SY_STRING("205 Reset Content");
+    case 206: return SY_STRING("206 Partial Content");
+    case 300: return SY_STRING("300 Multiple Choices");
+    case 301: return SY_STRING("301 Moved Permanently");
+    case 302: return SY_STRING("302 Found");
+    case 303: return SY_STRING("303 See Other");
+    case 304: return SY_STRING("304 Not Modified");
+    case 305: return SY_STRING("305 Use Proxy");
+    case 307: return SY_STRING("307 Temporary Redirect");
+    case 400: return SY_STRING("400 Bad Request");
+    case 401: return SY_STRING("401 Unauthorized");
+    case 402: return SY_STRING("402 Payment Required");
+    case 403: return SY_STRING("403 Forbidden");
+    case 404: return SY_STRING("404 Not Found");
+    case 405: return SY_STRING("405 Method Not Allowed");
+    case 406: return SY_STRING("406 Not Acceptable");
+    case 407: return SY_STRING("407 Proxy Authentication Required");
+    case 408: return SY_STRING("408 Request Time-out");
+    case 409: return SY_STRING("409 Conflict");
+    case 410: return SY_STRING("410 Gone");
+    case 411: return SY_STRING("411 Length Required");
+    case 412: return SY_STRING("412 Precondition Failed");
+    case 413: return SY_STRING("413 Request Entity Too Large");
+    case 414: return SY_STRING("414 Request-URI Too Large");
+    case 415: return SY_STRING("415 Unsupported Media Type");
+    case 416: return SY_STRING("416 Requested range not satisfiable");
+    case 417: return SY_STRING("417 Expectation Failed");
+    case 500: return SY_STRING("500 Internal Server Error");
+    case 501: return SY_STRING("501 Not Implemented");
+    case 502: return SY_STRING("502 Bad Gateway");
+    case 503: return SY_STRING("503 Service Unavailable");
+    case 504: return SY_STRING("504 Gateway Time-out");
+    case 505: return SY_STRING("505 HTTP Version not supported");
     default:
         assert(false);  
-        return string_null;
+        return SY_STRING_NULL;
     }
     
-    return string_null;    
+    return SY_STRING_NULL;    
 }

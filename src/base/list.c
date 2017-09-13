@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-int sy_list_insert(list_t* list, list_node_t* pos, list_node_t* new_node) {
+int sy_list_insert(sy_list_t* list, sy_list_node_t* pos, sy_list_node_t* new_node) {
     assert(pos != NULL);
     new_node->next = pos->next;
     if (new_node->next != NULL)
@@ -16,7 +16,7 @@ int sy_list_insert(list_t* list, list_node_t* pos, list_node_t* new_node) {
     return OK;
 }
 
-int sy_list_delete(list_t* list, list_node_t* x) {
+int sy_list_delete(sy_list_t* list, sy_list_node_t* x) {
     assert(list->size > 0 && x != &list->dummy);
     x->prev->next = x->next;
     if (x->next != NULL)
@@ -24,7 +24,7 @@ int sy_list_delete(list_t* list, list_node_t* x) {
     else
         list->dummy.prev = x->prev; // The tail
         
-    list_free(list, x);
+    sy_list_free(list, x);
     --list->size;
     return OK;
 }

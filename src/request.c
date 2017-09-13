@@ -1,73 +1,73 @@
 #include "server.h"
 
-static int sy_request_handle_uri(request_t* r);
-static int sy_request_handle_request_line(request_t* r);
-static int sy_request_handle_headers(request_t* r);
-static int sy_request_handle_body(request_t* r);
-static int sy_header_handle_generic(request_t* r, int offset);
-static int sy_header_handle_connection(request_t* r, int offset);
-static int sy_header_handle_t_encoding(request_t* r, int offset);
-static int sy_header_handle_content_length(request_t* r, int offset);
-static int sy_header_handle_host(request_t* r, int offset);
-static int sy_header_handle_accept(request_t* r, int offset);
-static int sy_header_handle_if_modified_since(request_t* r, int offset);
+static int sy_request_handle_uri(sy_request_t* r);
+static int sy_request_handle_request_line(sy_request_t* r);
+static int sy_request_handle_headers(sy_request_t* r);
+static int sy_request_handle_body(sy_request_t* r);
+static int sy_header_handle_generic(sy_request_t* r, int offset);
+static int sy_header_handle_connection(sy_request_t* r, int offset);
+static int sy_header_handle_t_encoding(sy_request_t* r, int offset);
+static int sy_header_handle_content_length(sy_request_t* r, int offset);
+static int sy_header_handle_host(sy_request_t* r, int offset);
+static int sy_header_handle_accept(sy_request_t* r, int offset);
+static int sy_header_handle_if_modified_since(sy_request_t* r, int offset);
 
 
 typedef struct {
-    string_t name;
-    header_val_t val;
-} header_nv_t;
+    sy_string_t name;
+    sy_header_val_t val;
+} sy_header_nv_t;
 
-#define HEADER_PAIR(name, processor)    \
-    {STRING_INIT(#name), {offsetof(request_headers_t, name), processor}}
+#define SY_HEADER_PAIR(name, callback)    \
+    {SY_STRING_INIT(#name), {offsetof(sy_request_headers_t, name), callback}}
 
-static header_nv_t header_tb[] = {
-    HEADER_PAIR(cache_control, header_handle_generic),
-    HEADER_PAIR(c, header_handle_connection),
-    HEADER_PAIR(date, header_handle_generic),
-    HEADER_PAIR(pragma, header_handle_generic),
-    HEADER_PAIR(trailer, header_handle_generic),
-    HEADER_PAIR(transfer_encoding, header_handle_t_encoding),
-    HEADER_PAIR(upgrade, header_handle_generic),
-    HEADER_PAIR(via, header_handle_generic),
-    HEADER_PAIR(warning, header_handle_generic),
-    HEADER_PAIR(allow, header_handle_generic),
-    HEADER_PAIR(content_encoding, header_handle_generic),
-    HEADER_PAIR(content_language, header_handle_generic),
-    HEADER_PAIR(content_length, header_handle_content_length),
-    HEADER_PAIR(content_location, header_handle_generic),
-    HEADER_PAIR(content_md5, header_handle_generic),
-    HEADER_PAIR(content_range, header_handle_generic),
-    HEADER_PAIR(content_type, header_handle_generic),
-    HEADER_PAIR(expires, header_handle_generic),
-    HEADER_PAIR(last_modified, header_handle_generic),
+static sy_header_nv_t header_tb[] = {
+    SY_HEADER_PAIR(cache_control, sy_header_handle_generic),
+    SY_HEADER_PAIR(c, sy_header_handle_connection),
+    SY_HEADER_PAIR(date, sy_header_handle_generic),
+    SY_HEADER_PAIR(pragma, sy_header_handle_generic),
+    SY_HEADER_PAIR(trailer, sy_header_handle_generic),
+    SY_HEADER_PAIR(transfer_encoding, sy_header_handle_t_encoding),
+    SY_HEADER_PAIR(upgrade, sy_header_handle_generic),
+    SY_HEADER_PAIR(via, sy_header_handle_generic),
+    SY_HEADER_PAIR(warning, sy_header_handle_generic),
+    SY_HEADER_PAIR(allow, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_encoding, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_language, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_length, sy_header_handle_content_length),
+    SY_HEADER_PAIR(content_location, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_md5, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_range, sy_header_handle_generic),
+    SY_HEADER_PAIR(content_type, sy_header_handle_generic),
+    SY_HEADER_PAIR(expires, sy_header_handle_generic),
+    SY_HEADER_PAIR(last_modified, sy_header_handle_generic),
 
-    HEADER_PAIR(accept, header_handle_accept),
-    HEADER_PAIR(accept_charset, header_handle_generic),
-    HEADER_PAIR(accept_encoding, header_handle_generic),
-    HEADER_PAIR(authorization, header_handle_generic),
-    HEADER_PAIR(cookie, header_handle_generic),
-    HEADER_PAIR(expect, header_handle_generic),
-    HEADER_PAIR(from, header_handle_generic),
-    HEADER_PAIR(host, header_handle_host),
-    HEADER_PAIR(if_match, header_handle_generic),
-    HEADER_PAIR(if_modified_since, header_handle_if_modified_since),
-    HEADER_PAIR(if_none_match, header_handle_generic),
-    HEADER_PAIR(if_range, header_handle_generic),
-    HEADER_PAIR(if_unmodified_since, header_handle_generic),
-    HEADER_PAIR(max_forwards, header_handle_generic),
-    HEADER_PAIR(proxy_authorization, header_handle_generic),
-    HEADER_PAIR(range, header_handle_generic),
-    HEADER_PAIR(referer, header_handle_generic),
-    HEADER_PAIR(te, header_handle_generic),
-    HEADER_PAIR(user_agent, header_handle_generic),
+    SY_HEADER_PAIR(accept, sy_header_handle_accept),
+    SY_HEADER_PAIR(accept_charset, sy_header_handle_generic),
+    SY_HEADER_PAIR(accept_encoding, sy_header_handle_generic),
+    SY_HEADER_PAIR(authorization, sy_header_handle_generic),
+    SY_HEADER_PAIR(cookie, sy_header_handle_generic),
+    SY_HEADER_PAIR(expect, sy_header_handle_generic),
+    SY_HEADER_PAIR(from, sy_header_handle_generic),
+    SY_HEADER_PAIR(host, sy_header_handle_host),
+    SY_HEADER_PAIR(if_match, sy_header_handle_generic),
+    SY_HEADER_PAIR(if_modified_since, sy_header_handle_if_modified_since),
+    SY_HEADER_PAIR(if_none_match, sy_header_handle_generic),
+    SY_HEADER_PAIR(if_range, sy_header_handle_generic),
+    SY_HEADER_PAIR(if_unmodified_since, sy_header_handle_generic),
+    SY_HEADER_PAIR(max_forwards, sy_header_handle_generic),
+    SY_HEADER_PAIR(proxy_authorization, sy_header_handle_generic),
+    SY_HEADER_PAIR(range, sy_header_handle_generic),
+    SY_HEADER_PAIR(referer, sy_header_handle_generic),
+    SY_HEADER_PAIR(te, sy_header_handle_generic),
+    SY_HEADER_PAIR(user_agent, sy_header_handle_generic),
 };
 
-#undef HEADER_PAIR
+#undef SY_HEADER_PAIR
 
 #define HEADER_MAP_SIZE     (131)
-static map_slot_t header_map_data[2 * HEADER_MAP_SIZE];
-static map_t header_map = {
+static sy_map_slot_t header_map_data[2 * HEADER_MAP_SIZE];
+static sy_map_t header_map = {
     .size = HEADER_MAP_SIZE,
     .max_size = 2 * HEADER_MAP_SIZE,
     .data = header_map_data,
@@ -77,29 +77,33 @@ static map_t header_map = {
 void sy_header_map_init(void) {
     int n = sizeof(header_tb) / sizeof(header_tb[0]);
     for (int i = 0; i < n; ++i) {
-        map_val_t val;
+        sy_map_val_t val;
         val.header = header_tb[i].val;
         sy_map_put(&header_map, &header_tb[i].name, &val);
     }
 }
 
-static inline void sy_uri_init(uri_t* uri) {
-    memset(uri, 0, sizeof(uri_t));
+static inline void sy_uri_init(sy_uri_t* uri) {
+    memset(uri, 0, sizeof(sy_uri_t));
     uri->state = URI_S_BEGIN;
 }
 
-/*
- * Request
- */
-void sy_request_init(request_t* r, connection_t* c) {
-    r->method = M_GET;    
+
+void sy_request_init(sy_request_t* r, sy_connection_t* c) {
+
+    // method and http version
+    r->method = M_GET;
     r->version.major = 0;
     r->version.minor = 0;
 
+    // request headers
     memset(&r->headers, 0, sizeof(r->headers));
+    // form a list
     sy_list_init(&r->accepts, &accept_pool);
 
+    // request line state
     r->state = RL_S_BEGIN;
+
     sy_string_init(&r->request_line);
     sy_string_init(&r->header_name);
     sy_string_init(&r->header_value);
@@ -119,47 +123,53 @@ void sy_request_init(request_t* r, connection_t* c) {
     r->content_length = -1;
     r->body_received = 0;
 
+    // request buffer
     sy_buffer_init(&r->rb);
+    // respons buffer
     sy_buffer_init(&r->sb);
     r->c = c;
+
+    // upstream
     r->uc = NULL;
-    r->in_handler = request_handle_request_line;
-    r->out_handler = send_response_buffer;
+
+    r->in_handler = sy_request_handle_request_line;
+
+    r->out_handler = sy_send_response_buffer;
 
     r->status = 200;
     r->resource_fd = -1;
     r->resource_len = 0;
 }
 
-void sy_request_clear(request_t* r) {
-    connection_t* c = r->c;
-    connection_t* uc = r->uc;
-    request_init(r, c);
+void sy_request_clear(sy_request_t* r) {
+    sy_connection_t* c = r->c;
+    sy_connection_t* uc = r->uc;
+    sy_request_init(r, c);
     r->c = c;
     r->uc = uc;
 }
 
 /*
- * Send recived data to backend
+ * Send received data to backend
  * Return:
  *  OK: send all data in buffer
  *  AGAIN: send partial data
  *  ERROR: error occurred, the upstream connection must be closed
  */
 
-int sy_handle_pass(connection_t* uc) {
-    request_t* r = uc->r;
-    buffer_t* b = &r->rb;
-    int err = buffer_send(b, uc->fd);
+int sy_handle_pass(sy_connection_t* uc) {
+    sy_request_t* r = uc->r;
+    sy_buffer_t* b = &r->rb;
+    int err = sy_buffer_send(b, uc->fd);
     if (err == OK) {
         // Remove the EPOLLOUT event of upstream side
         // Done send all data
-        buffer_clear(b);
-        connection_enable_in(r->c);
-        connection_disable_out(uc);
+        sy_buffer_clear(b);
+        sy_connection_enable_in(r->c);
+        sy_connection_disable_out(uc);
     } else if (err == ERROR) {
         // The connection has been closed by peer
-        response_build_err(r, 503);
+        sy_response_build_err(r, 503);
     }
     return err;
 }
@@ -170,37 +180,40 @@ int sy_handle_pass(connection_t* uc) {
  *  OK, ERROR: the upstream connection must be closed
  *  AGAIN:
  */
-int sy_handle_upstream(connection_t* uc) {
-    request_t* r = uc->r;
-    buffer_t* b = &r->sb;
-    int err = buffer_recv(b, uc->fd);
+
+int sy_handle_upstream(sy_connection_t* uc) {
+    sy_request_t* r = uc->r;
+    sy_buffer_t* b = &r->sb;
+    int err = sy_buffer_recv(b, uc->fd);
     if (err == OK) {
         // The connection has been closed by peer
         return ERROR;
     } else if (err == ERROR) {
         // Error in backend
-        response_build_err(r, 503);
+        sy_response_build_err(r, 503);
         return ERROR;
-    } else if (buffer_full(b)) {
+    } else if (sy_buffer_full(b)) {
         //connection_disable_in(uc);
     }
-    connection_enable_out(r->c);
+    sy_connection_enable_out(r->c);
     return err;
 }
 
-int sy_send_response_buffer(request_t* r) {
-    connection_t* c= r->c;
-    buffer_t* b = &r->sb;
-    int err = buffer_send(b, c->fd);
+int sy_send_response_buffer(sy_request_t* r) {
+    sy_connection_t* c= r->c;
+    sy_buffer_t* b = &r->sb;
+    int err = sy_buffer_send(b, c->fd);
     if (err == OK) {
-        buffer_clear(b);
+        sy_buffer_clear(b);
+//
         if (r->uc) {
             return AGAIN;
         } else if (r->resource_fd != -1) {
-            r->out_handler = send_response_file;
+            r->out_handler = sy_send_response_file;
             return OK;
         }
-        connection_disable_out(c);
+
+        sy_connection_disable_out(c);
         r->response_done = true;
         return OK;
     } else if (err == ERROR) {
@@ -209,8 +222,8 @@ int sy_send_response_buffer(request_t* r) {
     return AGAIN;
 }
 
-int sy_send_response_file(request_t* r) {
-    connection_t* c = r->c;
+int sy_send_response_file(sy_request_t* r) {
+    sy_connection_t* c = r->c;
     assert(!r->uc);
     int fd = c->fd;
     while (1) {
@@ -228,21 +241,21 @@ int sy_send_response_file(request_t* r) {
             return ERROR;
         }
     }
-    return OK;  
+    return OK;
 }
 
 
-int handle_response(connection_t* c) {
-    request_t* r = c->r;
+int sy_handle_response(sy_connection_t* c) {
+    sy_request_t* r = c->r;
     int err;
     do {
         err = r->out_handler(r);
     } while (err == OK && !r->response_done);
     if (r->response_done) {
         if (r->keep_alive) {
-            connection_disable_out(c);
-            connection_enable_in(c);
-            request_clear(r);
+            sy_connection_disable_out(c);
+            sy_connection_enable_in(c);
+            sy_request_clear(r);
         } else {
             return ERROR;
         }
@@ -250,24 +263,24 @@ int handle_response(connection_t* c) {
     return err;
 }
 
-int sy_handle_request(connection_t* c) {
-    request_t* r = c->r;
-    buffer_t* b = &r->rb;
-    int err = buffer_recv(b, c->fd);
+int sy_handle_request(sy_connection_t* c) {
+    sy_request_t* r = c->r;
+    sy_buffer_t* b = &r->rb;
+    int err = sy_buffer_recv(b, c->fd);
     if (err != AGAIN) {
         return ERROR;
     }
 
     do {
         err = r->in_handler(r);
-    } while (err == OK && !r->body_done);
+    } while (err == OK && !r->body_done); // a key point to understand
     return err;
 }
 
-static location_t* sy_match_location(string_t* path) {
-    vector_t* locs = &server_cfg.locations;
+static sy_location_t* sy_match_location(sy_string_t* path) {
+    sy_vector_t* locs = &server_cfg.locations;
     for (int i = 0; i < locs->size; ++i) {
-        location_t* loc = vector_at(locs, i);
+        sy_location_t* loc = sy_vector_at(locs, i);
         // The first matched location is returned
         if (strncasecmp(loc->path.data, path->data, loc->path.len) == 0)
             return loc;
@@ -275,8 +288,8 @@ static location_t* sy_match_location(string_t* path) {
     return NULL;
 }
 
-static int sy_request_handle_uri(request_t* r) {
-    uri_t* uri = &r->uri;
+static int sy_request_handle_uri(sy_request_t* r) {
+    sy_uri_t* uri = &r->uri;
     if (uri->host.data) {
         r->host = uri->host;
         if (uri->port.data) {
@@ -284,7 +297,7 @@ static int sy_request_handle_uri(request_t* r) {
         }
     }
 
-    location_t* loc = match_location(&uri->abs_path);
+    sy_location_t* loc = sy_match_location(&uri->abs_path);
     if (loc == NULL) {
         return sy_response_build_err(r, 404);
     }
@@ -315,43 +328,43 @@ static int sy_request_handle_uri(request_t* r) {
     if (S_ISDIR(st.st_mode)) {
         int tmp_fd = fd;
         fd = openat(fd, "index.html", O_RDONLY);
-        close(tmp_fd); 
+        close(tmp_fd);
         if (fd == -1) {
             // Accessing to a directory is forbidden
             return sy_response_build_err(r, 403);
         }
         fstat(fd, &st);
-        uri->extension = STRING("html");
+        uri->extension = SY_STRING("html");
     }
     r->resource_fd = fd;
     r->resource_len = st.st_size;
     return OK;
 }
 
-static int sy_request_handle_request_line(request_t* r) {
+static int sy_request_handle_request_line(sy_request_t* r) {
     int err = sy_parse_request_line(r);
     if (err == AGAIN) {
         return err;
     } else if (err != OK) {
-        // Reuqest line parsing error, can't recovery
+        // bad request
         return sy_response_build_err(r, 400);
     }
-    // Supports only HTTP/1.1
+    // Only supports HTTP/1.1
     if (r->version.major != 1 || r->version.minor > 2) {
         return sy_response_build_err(r, 505);
     }
 
-    // HTTP/1.1: persistent c default
+    // HTTP/1.1: persistent connection
     r->keep_alive = r->version.minor == 1;
 
     // TODO: check method
-    // We still need to receive the left part of this r
-    // Thus, the c will hold
-    r->in_handler = request_handle_headers;
+    // We still need to receive the left part of this request
+    // Thus, the connection will hold
+    r->in_handler = sy_request_handle_headers;
     return sy_request_handle_uri(r);
 }
 
-static int sy_request_handle_headers(request_t* r) {
+static int sy_request_handle_headers(sy_request_t* r) {
     int err;
     while (true) {
         err = sy_parse_header_line(r);
@@ -361,46 +374,47 @@ static int sy_request_handle_headers(request_t* r) {
         case EMPTY_LINE:
             goto done;
         case OK: {
-            map_slot_t* slot = sy_map_get(&header_map, &r->header_name);
-            if (slot == NULL)
+            sy_map_slot_t* slot = sy_map_get(&header_map, &r->header_name);
+            if (slot == NULL) // can not be identified
                 break;
-            header_val_t header = slot->val.header;
+            sy_header_val_t header = slot->val.header;
             if (header.offset != -1) {
-                header_processor_t processor = header.processor;
-                int err = processor(r, header.offset);
+                sy_header_processor_t processor = header.processor;
+                int err = sy_processor(r, header.offset);
                 if (err != 0)
                     return err;
             }
-        } break;
+        }
+        break;
         default:
             assert(false);
         }
     }
 
 done:
-    r->in_handler = request_handle_body;
+    r->in_handler = sy_request_handle_body;
     return OK;
 }
 
-static int header_handle_connection(request_t* r, int offset) {
-    header_handle_generic(r, offset);
-    request_headers_t* headers = &r->headers;
+static int sy_header_handle_connection(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
+    sy_request_headers_t* headers = &r->headers;
     if(strncasecmp("close", headers->c.data, 5) == 0)
         r->keep_alive = false;
     return OK;
 }
 
-static int header_handle_t_encoding(request_t* r, int offset) {
-    header_handle_generic(r, offset);
+static int sy_header_handle_t_encoding(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
 
-    string_t* transfer_encoding = &r->headers.transfer_encoding;
+    sy_string_t* transfer_encoding = &r->headers.transfer_encoding;
     if (strncasecmp("chunked", transfer_encoding->data, 7) == 0) {
         r->t_encoding = TE_CHUNKED;
     } else if (strncasecmp("gzip", transfer_encoding->data, 4) == 0
-            || strncasecmp("x-gzip", transfer_encoding->data, 6) == 0) {
+               || strncasecmp("x-gzip", transfer_encoding->data, 6) == 0) {
         r->t_encoding = TE_GZIP;
     } else if (strncasecmp("compress", transfer_encoding->data, 8) == 0
-            || strncasecmp("x-compress", transfer_encoding->data, 10) == 0) {
+               || strncasecmp("x-compress", transfer_encoding->data, 10) == 0) {
         r->t_encoding = TE_COMPRESS;
     } else if (strncasecmp("deflate", transfer_encoding->data, 7) == 0) {
         r->t_encoding = TE_DEFLATE;
@@ -408,19 +422,19 @@ static int header_handle_t_encoding(request_t* r, int offset) {
         r->t_encoding = TE_IDENTITY;
     } else {
         // Must close the c as we can't understand the body
-        return response_build_err(r, 415);
+        return sy_response_build_err(r, 415);
     }
     return OK;
 }
 
-static int header_handle_content_length(request_t* r, int offset) {
-    header_handle_generic(r, offset);
+static int sy_header_handle_content_length(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
     //sring_t* name = &r->header_name;
-    string_t* val = &r->header_value;
+    sy_string_t* val = &r->header_value;
 
     int len = atoi(val->data);
     if (len < 0) {
-        return response_build_err(r, 400);
+        return sy_response_build_err(r, 400);
     }
     r->content_length = len;
     return OK;
@@ -428,68 +442,66 @@ static int header_handle_content_length(request_t* r, int offset) {
 
 // If both the uri in the r contains host[:port]
 // and has this host header, the host header is active.
-static int header_handle_host(request_t* r, int offset) {
-    header_handle_generic(r, offset);
-    //memcpy(r->headers.host.data, "localhost:3030", 14);
+static int sy_header_handle_host(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
     return OK;
 }
 
-static int header_handle_if_modified_since(request_t* r, int offset) {
-    header_handle_generic(r, offset);
+static int sy_header_handle_if_modified_since(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
     return OK;
 }
 
-static int request_handle_body(request_t* r) {
+static int sy_request_handle_body(sy_request_t* r) {
     int err = OK;
     switch (r->t_encoding) {
     case TE_IDENTITY:
-        err = parse_request_body_identity(r);
+        err = sy_parse_request_body_identity(r);
         break;
     case TE_CHUNKED:
         assert(false);
-        err = parse_request_body_chunked(r);
+        err = sy_parse_request_body_chunked(r);
         break;
     default:
-        // TODO(wgtdkp): cannot understanding
-        // May discard the body
+        /*TODO: so far not handled*/
         assert(false);
     }
 
-    buffer_t* b = &r->rb;
+    sy_buffer_t* b = &r->rb;
     switch (err) {
     case AGAIN:
-        connection_disable_in(r->c);
+        sy_connection_disable_in(r->c);
         b->begin = b->data;
-        connection_enable_out(r->uc);
+        sy_connection_enable_out(r->uc);
         return AGAIN;
     case OK:
         // Do not allow pipelining
-        connection_disable_in(r->c);
+        sy_connection_disable_in(r->c);
         if (!r->uc) {
-            response_build(r);
-            buffer_clear(b);
-            connection_enable_out(r->c);
+            sy_response_build(r);
+            sy_buffer_clear(b);
+            sy_connection_enable_out(r->c);
         } else {
             b->begin = b->data;
-            connection_enable_out(r->uc);
+            sy_connection_enable_out(r->uc);
         }
         r->body_done = true;
-        r->in_handler = request_handle_request_line;
+        r->in_handler = sy_request_handle_request_line;
         return OK;
     default:
-        return response_build_err(r, 400);
+        return sy_response_build_err(r, 400);
     }
     return OK;
 }
 
-static int header_handle_accept(request_t* r, int offset) {
-    header_handle_generic(r, offset);
-    //parse_header_accept(r);
+static int sy_header_handle_accept(sy_request_t* r, int offset) {
+    sy_header_handle_generic(r, offset);
     return OK;
 }
 
-static int header_handle_generic(request_t* r, int offset) {
-    string_t* member = (string_t*)((char*)&r->headers + offset);
+static int sy_header_handle_generic(sy_request_t* r, int offset) {
+    sy_string_t* member = (sy_string_t*)((char*)&r->headers + offset);
     *member = r->header_value;
     return OK;
 }
+

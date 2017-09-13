@@ -1,16 +1,20 @@
 TARGET = SyServer
 
-LIBS = $(wildcard ./lib/*.c)
-SRCS =  $(LIBS) config.c connection.c http_parse.c request.c response.c server.c uwsgi.c 
+LIBS = $(wildcard ./base/*.c)
 
-OBJS_DIR = bin/
+SRCS =  $(LIBS) config.c connection.c httpparse.c request.c response.c server.c uwsgi.c 
+
+OBJS_DIR = ./base/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.c=.o))
 
-BIN_DIR = prog/
-#BIN_DIR = /usr/local/bin/
-INSTALL_DIR = prog/
-#INSTALL_DIR = /usr/local/$(TARGET)/
+#BIN_DIR = prog/
+BIN_DIR = /usr/local/bin/
+
+#INSTALL_DIR = prog/
+INSTALL_DIR = /usr/local/$(TARGET)/
+
 CC = gcc -std=c11
+
 CFLAGS = -g -Wall -DINSTALL_DIR=\"$(INSTALL_DIR)\" -D_XOPEN_SOURCE -D_GNU_SOURCE -I./ -I../
 #CFLAGS =  -O2 -Wall -DINSTALL_DIR=\"$(INSTALL_DIR)\" -D_XOPEN_SOURCE -D_GNU_SOURCE -I./ -I../
 
@@ -30,7 +34,7 @@ uninstall: clean
 
 $(TARGET): $(OBJS)
 	gcc -o $@ $^
-
+	
 $(OBJS_DIR)%.o: %.c %.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 

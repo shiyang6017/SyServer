@@ -13,7 +13,7 @@ static void sy_usage(void) {
 static void sy_save_pid(int pid) {
     FILE* fp = fopen(INSTALL_DIR "syServer.pid", "w");
     if (fp == NULL) {
-        ju_error("open pid file: " INSTALL_DIR "syServer.pid failed");
+        sy_error("open pid file: " INSTALL_DIR "syServer.pid failed");
         exit(ERROR);
     }
     fprintf(fp, "%d", pid);
@@ -23,7 +23,7 @@ static void sy_save_pid(int pid) {
 static int sy_get_pid(void) {
     FILE* fp = fopen(INSTALL_DIR "syServer.pid", "a+");
     if (fp == NULL) {
-        ju_error("open pid file: " INSTALL_DIR "syServer.pid failed");
+        sy_error("open pid file: " INSTALL_DIR "syServer.pid failed");
         exit(ERROR);
     }
     int pid = 0;
@@ -35,14 +35,14 @@ static void sy_send_signal(const char* signal) {
     if (strncasecmp(signal, "stop", 4) == 0) {
         kill(-get_pid(), SIGINT);
     } else {
-        usage();
+        sy_usage();
     }
     exit(OK);
 }
 
 static void sy_sig_int(int signo) {
-    ju_log("syServer exited...");
-    save_pid(0);
+    sy_log("syServer exited...");
+    sy_save_pid(0);
     kill(-getpid(), SIGINT);
     raise(SIGKILL);
 }
@@ -51,7 +51,7 @@ static int sy_startup(uint16_t port) {
     // If the client closed the c, then it will cause SIGPIPE
     // Here simplely ignore this SIG
     signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, sig_int);
+    signal(SIGINT, sy_sig_int);
 
     // Open socket, bind and listen
     int listen_fd = 0;
@@ -67,8 +67,7 @@ static int sy_startup(uint16_t port) {
     if (server_cfg.workers.size > 1) {
         setsockopt(listen_fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
     }
-
-    memset((void*)&server_addr, 0, addr_len);
+    
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -91,8 +90,8 @@ static int sy_server_init(void) {
     sy_header_map_init();
     sy_mime_map_init();
 
-    sy_pool_init(&connection_pool, sizeof(connection_t), 8, 0);
-    sy_pool_init(&request_pool, sizeof(request_t), 8, 0);
+    sy_pool_init(&connection_pool, sizeof(sy_connection_t), 8, 0);
+    sy_pool_init(&request_pool, sizeof(sy_request_t), 8, 0);
 
     epoll_fd = epoll_create1(0);
     SY_ABORT_ON(epoll_fd == ERROR, "epoll_create1");
@@ -117,12 +116,12 @@ int main(int argc, char* argv[]) {
         }
         switch (argv[1][1]) {
         case 'h': sy_usage(); break;
-        case 's': send_signal(argv[2]); break;
+        case 's': sy_send_signal(argv[2]); break;
         default: sy_usage(); break;
         }
     }
 
-    get_pid();
+    sy_get_pid();
 
     if (sy_config_load(&server_cfg) != OK) {
         raise(SIGINT);
@@ -136,7 +135,7 @@ int main(int argc, char* argv[]) {
         sy_daemon(1, 0);
     }
 
-    if (get_pid() != 0) {
+    if (sy_get_pid() != 0) {
         sy_error("syServer has already been running...");
         exit(ERROR);
     }
@@ -150,7 +149,7 @@ int main(int argc, char* argv[]) {
             wait(&stat);
             if (WIFEXITED(stat))
                 raise(SIGINT);
-            // Worker unexpectly exited, restart it
+            // restart it
             sy_log("syServer failed, restarting...");
         }
         int pid = fork();
@@ -170,7 +169,7 @@ work:;
         exit(ERROR);
     }
 
-    sy_log("syServer started...");
+    sy_log("syServer started");
     sy_log("listening at port: %u", server_cfg.port);
     assert(sy_add_listener(&listen_fd) != ERROR);
 
@@ -189,7 +188,7 @@ wait:;
         }
 
         int err;
-        connection_t* c = events[i].data.ptr;
+        sy_connection_t* c = events[i].data.ptr;
         if (!sy_connection_is_expired(c) && events[i].events & EPOLLIN) {
             err = (c->side == C_SIDE_BACK) ?
                   sy_handle_upstream(c): sy_handle_request(c);

@@ -4,40 +4,40 @@
 
 int epoll_fd;
 struct epoll_event events[MAX_EVENT_NUM];
-pool_t connection_pool;
-pool_t request_pool;
-pool_t accept_pool;
+sy_pool_t connection_pool;
+sy_pool_t request_pool;
+sy_pool_t accept_pool;
 
 static int heap_size = 0;
-static connection_t* connections[MAX_CONNECTION + 1] = {NULL};
+static sy_connection_t* connections[MAX_CONNECTION + 1] = {NULL};
 
-connection_t* sy_open_connection(int fd) {
-    connection_t* c = pool_alloc(&connection_pool);
+sy_connection_t* sy_open_connection(int fd) {
+    sy_connection_t* c = sy_pool_alloc(&connection_pool);
     c->active_time = time(NULL);
     c->fd = fd;
     c->side = C_SIDE_FRONT;
-    c->r = pool_alloc(&request_pool);
-    request_init(c->r, c);
+    c->r = sy_pool_alloc(&request_pool);
+    sy_request_init(c->r, c);
 
-    if (connection_register(c) == -1) {
-        close_connection(c);
+    if (sy_connection_register(c) == -1) {
+        sy_close_connection(c);
         return NULL;
     }
-    set_nonblocking(c->fd);
+    sy_set_nonblocking(c->fd);
     c->event.events = EVENTS_IN;
     c->event.data.ptr = c;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, c->fd, &c->event) == -1) {
-        close_connection(c);
+        sy_close_connection(c);
         return NULL;
     }
     return c;
 }
 
-connection_t* sy_uwsgi_open_connection(request_t* r, location_t* loc) {
+sy_connection_t* sy_uwsgi_open_connection(sy_request_t* r, sy_location_t* loc) {
     assert(loc->pass);
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    ERR_ON(fd == -1, "socket");
+    SY_ERR_ON(fd == -1, "socket");
 
     struct sockaddr_in addr;
     bzero(&addr, sizeof(addr));
@@ -48,45 +48,45 @@ connection_t* sy_uwsgi_open_connection(request_t* r, location_t* loc) {
     if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
         return NULL;
 
-    connection_t* c = pool_alloc(&connection_pool);
+    sy_connection_t* c = sy_pool_alloc(&connection_pool);
     c->active_time = time(NULL);
     c->fd = fd;
     c->side = C_SIDE_BACK;
     c->r = r;
 
-    if (connection_register(c) == -1) {
-        close_connection(c);
+    if (sy_connection_register(c) == -1) {
+        sy_close_connection(c);
         return NULL;
     }
 
-    set_nonblocking(c->fd);
+    sy_set_nonblocking(c->fd);
     c->event.events = EVENTS_IN;
     c->event.data.ptr = c;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, c->fd, &c->event) == -1) {
-        close_connection(c);
+        sy_close_connection(c);
         return NULL;
     }
     return c;
 }
 
-void sy_close_connection(connection_t* c) {
-    connection_unregister(c);
+void sy_close_connection(sy_connection_t* c) {
+    sy_connection_unregister(c);
     // The events automatically removed
     close(c->fd);
     if (c->side == C_SIDE_FRONT) {
         if (c->r->uc) {
-            close_connection(c->r->uc);
+            sy_close_connection(c->r->uc);
         }
-        pool_free(&request_pool, c->r);
+        sy_pool_free(&request_pool, c->r);
     } else {
         c->r->uc = NULL;
     }
-    pool_free(&connection_pool, c);
+    sy_pool_free(&connection_pool, c);
 }
 
 int sy_add_listener(int* listen_fd) {
-    epoll_event ev;
-    set_nonblocking(*listen_fd);
+    struct epoll_event ev;
+    sy_set_nonblocking(*listen_fd);
     ev.events = EVENTS_IN;
     ev.data.ptr = listen_fd;
     return epoll_ctl(epoll_fd, EPOLL_CTL_ADD, *listen_fd, &ev);
@@ -94,9 +94,9 @@ int sy_add_listener(int* listen_fd) {
 
 int sy_set_nonblocking(int fd) {
     int flag = fcntl(fd, F_GETFL, 0);
-    ABORT_ON(flag == -1, "fcntl: F_GETFL");
+    SY_ABORT_ON(flag == -1, "fcntl: F_GETFL");
     flag |= O_NONBLOCK;
-    ABORT_ON(fcntl(fd, F_SETFL, flag) == -1, "fcntl: FSETFL");
+    SY_ABORT_ON(fcntl(fd, F_SETFL, flag) == -1, "fcntl: FSETFL");
     return 0;
 }
 
@@ -106,9 +106,9 @@ int sy_set_nonblocking(int fd) {
 
 static void sy_heap_shift_up(int idx) {
     int k = idx;
-    connection_t* c = connections[k];
+    sy_connection_t* c = connections[k];
     while (P(k) > 0) {
-        connection_t* pc = connections[P(k)];
+        sy_connection_t* pc = connections[P(k)];
         if (c->active_time >= pc->active_time)
             break;
         connections[k] = pc;
@@ -121,7 +121,7 @@ static void sy_heap_shift_up(int idx) {
 
 static void sy_heap_shift_down(int idx) {
     int k = idx;
-    connection_t* c = connections[k];
+    sy_connection_t* c = connections[k];
     while (true) {
         int kid = L(k);
         if (R(k) <= heap_size &&
@@ -140,26 +140,26 @@ static void sy_heap_shift_down(int idx) {
     connections[k]->heap_idx = k;
 }
 
-void sy_connection_activate(connection_t* c) {
+void sy_connection_activate(sy_connection_t* c) {
     c->active_time = time(NULL);
     sy_heap_shift_down(c->heap_idx);
     if (c->side == C_SIDE_FRONT && c->r->uc)
         sy_connection_activate(c->r->uc);
 }
 
-void sy_connection_expire(connection_t* c) {
+void sy_connection_expire(sy_connection_t* c) {
     c->active_time = time(NULL) - server_cfg.timeout - 1; // sweep later
     sy_heap_shift_up(c->heap_idx);
     if (c->side == C_SIDE_FRONT && c->r->uc)
         sy_connection_expire(c->r->uc);
 }
 
-bool sy_connection_is_expired(connection_t* c) {
+bool sy_connection_is_expired(sy_connection_t* c) {
   return c->active_time + server_cfg.timeout < time(NULL);
 }
 
 // Return: 0, success; -1, fail;
-int sy_connection_register(connection_t* c) {
+int sy_connection_register(sy_connection_t* c) {
     if (heap_size + 1 > MAX_CONNECTION)
       return -1;
     connections[++heap_size] = c;
@@ -167,7 +167,7 @@ int sy_connection_register(connection_t* c) {
     return 0;
 }
 
-void sy_connection_unregister(connection_t* c) {
+void sy_connection_unregister(sy_connection_t* c) {
     assert(heap_size > 0);
     connections[c->heap_idx] = connections[heap_size];
     connections[c->heap_idx]->heap_idx = c->heap_idx;

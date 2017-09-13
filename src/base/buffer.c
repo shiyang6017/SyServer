@@ -10,8 +10,8 @@
 #include <sys/socket.h>
 
 
-int sy_buffer_recv(buffer_t* buffer, int fd) {
-    while (!buffer_full(buffer)) {
+int sy_buffer_recv(sy_buffer_t* buffer, int fd) {
+    while (!sy_buffer_full(buffer)) {
         int margin = buffer->limit - buffer->end;
         int len = recv(fd, buffer->end, margin, 0);
         if (len == 0) // EOF
@@ -28,15 +28,16 @@ int sy_buffer_recv(buffer_t* buffer, int fd) {
     return AGAIN;
 }
 
-int sy_buffer_send(buffer_t* buffer, int fd) {
-    //int sent = 0;
-    while (buffer_size(buffer) > 0) {
-        int len = send(fd, buffer->begin, buffer_size(buffer), 0);
+int sy_buffer_send(sy_buffer_t* buffer, int fd) {
+
+    while (sy_buffer_size(buffer) > 0) {
+        int len = send(fd, buffer->begin, sy_buffer_size(buffer), 0);
         if (len == -1) {
             if (errno == EAGAIN)
                 return AGAIN;
             else if (errno == EPIPE) {
-                // TODO: the connection is broken
+                // the connection is closed by client
+                return ERROR;
             }
             perror("send");
             return ERROR;
@@ -44,11 +45,11 @@ int sy_buffer_send(buffer_t* buffer, int fd) {
         //sent += len;
         buffer->begin += len;
     };
-    buffer_clear(buffer);
+    sy_buffer_clear(buffer);
     return OK;
 }
 
-int sy_buffer_append_string(buffer_t* buffer, const string_t* str) {
+int sy_buffer_append_string(sy_buffer_t* buffer, const string_t* str) {
     int margin = buffer->limit - buffer->end;
     assert(margin > 0);
     int appended = min(margin, str->len);
@@ -57,7 +58,7 @@ int sy_buffer_append_string(buffer_t* buffer, const string_t* str) {
     return appended;
 }
 
-int sy_buffer_print(buffer_t* buffer, const char* format, ...) {
+int sy_buffer_print(sy_buffer_t* buffer, const char* format, ...) {
     va_list args;
     va_start (args, format);
     int margin = buffer->limit - buffer->end;
@@ -68,7 +69,7 @@ int sy_buffer_print(buffer_t* buffer, const char* format, ...) {
     return len;
 }
 
-void sy_print_buffer(buffer_t* buffer) {
+void sy_print_buffer(sy_buffer_t* buffer) {
     for(char* p = buffer->begin; p != buffer->end; ++p) {
         printf("%c", *p);
         fflush(stdout);

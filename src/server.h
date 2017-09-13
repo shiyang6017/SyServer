@@ -7,7 +7,6 @@
 #include "base/queue.h"
 #include "base/string.h"
 #include "base/vector.h"
-#include "event.h"
 #include "server.h"
 #include "util.h"
 
@@ -46,24 +45,24 @@
 #define EVENTS_IN   (EPOLLIN)
 #define EVENTS_OUT  (EPOLLOUT)
 
-/*
- * Config
- */
+
+
+
 typedef enum {
     PROT_HTTP,
-    PROT_UWSGI, // support only uwsgi
-    PROT_FCGI,
-} protocol_t;
+    PROT_UWSGI, // TODO
+    PROT_FCGI,  // TODO
+} sy_protocol_t;
 
 typedef struct {
     bool pass;
     int fd;
-    string_t path;
-    string_t root;
-    string_t host;
+    sy_string_t path;
+    sy_string_t root;
+    sy_string_t host;
     uint16_t port;
-    protocol_t protocol;
-} location_t;
+    sy_protocol_t protocol;
+} sy_location_t;
 
 typedef struct {
     uint16_t port;
@@ -71,98 +70,98 @@ typedef struct {
     bool debug;
     bool daemon;
     int timeout;
-    vector_t workers;
-    vector_t locations;
+    sy_vector_t workers;
+    sy_vector_t locations;
     char* text;
-} config_t;
+} sy_config_t;
 
-extern config_t server_cfg;
+extern sy_config_t server_cfg;
 
-int sy_config_load(config_t* cfg);
-void sy_config_destroy(config_t* cfg);
+int sy_config_load(sy_config_t* cfg);
+void sy_config_destroy(sy_config_t* cfg);
 
 /*
  * Connection
  */
 extern int epoll_fd;
 extern struct epoll_event events[MAX_EVENT_NUM];
-extern pool_t connection_pool;
-extern pool_t request_pool;
-extern pool_t accept_pool;
+extern sy_pool_t connection_pool;
+extern sy_pool_t request_pool;
+extern sy_pool_t accept_pool;
 
 
 #define COMMON_HEADERS              \
     /* General headers */           \
-    string_t cache_control;         \
-    string_t c;            \
-    string_t date;                  \
-    string_t pragma;                \
-    string_t trailer;               \
-    string_t transfer_encoding;     \
-    string_t upgrade;               \
-    string_t via;                   \
-    string_t warning;               \
+    sy_string_t cache_control;         \
+    sy_string_t c;            \
+    sy_string_t date;                  \
+    sy_string_t pragma;                \
+    sy_string_t trailer;               \
+    sy_string_t transfer_encoding;     \
+    sy_string_t upgrade;               \
+    sy_string_t via;                   \
+    sy_string_t warning;               \
     /* Entity headers */            \
-    string_t allow;                 \
-    string_t content_encoding;      \
-    string_t content_language;      \
-    string_t content_length;        \
-    string_t content_location;      \
-    string_t content_md5;           \
-    string_t content_range;         \
-    string_t content_type;          \
-    string_t expires;               \
-    string_t last_modified;
+    sy_string_t allow;                 \
+    sy_string_t content_encoding;      \
+    sy_string_t content_language;      \
+    sy_string_t content_length;        \
+    sy_string_t content_location;      \
+    sy_string_t content_md5;           \
+    sy_string_t content_range;         \
+    sy_string_t content_type;          \
+    sy_string_t expires;               \
+    sy_string_t last_modified;
 
 typedef struct {
     COMMON_HEADERS
-    string_t accept;
-    string_t accept_charset;
-    string_t accept_encoding;
-    string_t authorization;
-    string_t cookie;
-    string_t expect;
-    string_t from;
-    string_t host;
-    string_t if_match;
-    string_t if_modified_since;
-    string_t if_none_match;
-    string_t if_range;
-    string_t if_unmodified_since;
-    string_t max_forwards;
-    string_t proxy_authorization;
-    string_t range;
-    string_t referer;
-    string_t te;
-    string_t user_agent;
-} request_headers_t;
+    sy_string_t accept;
+    sy_string_t accept_charset;
+    sy_string_t accept_encoding;
+    sy_string_t authorization;
+    sy_string_t cookie;
+    sy_string_t expect;
+    sy_string_t from;
+    sy_string_t host;
+    sy_string_t if_match;
+    sy_string_t if_modified_since;
+    sy_string_t if_none_match;
+    sy_string_t if_range;
+    sy_string_t if_unmodified_since;
+    sy_string_t max_forwards;
+    sy_string_t proxy_authorization;
+    sy_string_t range;
+    sy_string_t referer;
+    sy_string_t te;
+    sy_string_t user_agent;
+} sy_request_headers_t;
 
 typedef struct {
     COMMON_HEADERS
-    string_t accept_ranges;
-    string_t age;
-    string_t etag;
-    string_t location;
-    string_t proxy_authenticate;
-    string_t retry_after;
-    string_t server;
-    string_t vary;
-    string_t www_authenticate;
-} response_headers_t;
+    sy_string_t accept_ranges;
+    sy_string_t age;
+    sy_string_t etag;
+    sy_string_t location;
+    sy_string_t proxy_authenticate;
+    sy_string_t retry_after;
+    sy_string_t server;
+    sy_string_t vary;
+    sy_string_t www_authenticate;
+} sy_response_headers_t;
 
 /*
  * Request
  */
 typedef enum {
     M_CONNECT,
-    M_DELETE,
-    M_GET,
-    M_HEAD,
+    M_DELETE, 
+    M_GET,  // support
+    M_HEAD, // support
     M_OPTIONS,
-    M_POST,
+    M_POST, 
     M_PUT,
     M_TRACE,
-} method_t;
+} sy_method_t;
 
 typedef enum {
     RS_REQUEST_LINE,
@@ -170,57 +169,59 @@ typedef enum {
     RS_BODY,
     RS_PASS_HEADERS,
     RS_PASS_BODY,
-} request_stage_t;
+} sy_request_stage_t;
 
 // Tranfer coding
 typedef enum {
-    TE_IDENTITY,
+    TE_IDENTITY, // support only
     TE_CHUNKED,
     TE_GZIP,
     TE_COMPRESS,
     TE_DEFLATE,
-} transfer_encoding_t;
+} sy_transfer_encoding_t;
 
 typedef struct {
-    string_t type;
-    string_t subtype;
+    sy_string_t type;
+    sy_string_t subtype;
     float q;
-} accept_type_t;
+} sy_accept_type_t;
 
 typedef struct {
     uint16_t major;
     uint16_t minor;
-} version_t;
+} sy_version_t;
 
 typedef struct {
-    string_t scheme;
-    string_t host;
-    string_t port;
-    string_t abs_path;
-    string_t extension;
-    string_t query;
+    sy_string_t scheme;
+    sy_string_t host;
+    sy_string_t port;
+    sy_string_t abs_path;
+    sy_string_t extension;
+    sy_string_t query;
     int nddots;
     int nentries;
     int state;
-} uri_t;
+} sy_uri_t;
 
 
-typedef struct request {
-    method_t method;
-    version_t version;
-    request_headers_t headers;
-    list_t accepts;
+
+
+typedef struct sy_request{
+    sy_method_t method;
+    sy_version_t version;
+    sy_request_headers_t headers;
+    sy_list_t accepts;
 
     // For state machine
     int state;
-    string_t request_line;
-    string_t header_name;
-    string_t header_value;
-    uri_t uri;
-    string_t host;
+    sy_string_t request_line;
+    sy_string_t header_name;
+    sy_string_t header_value;
+    sy_uri_t uri;
+    sy_string_t host;
     uint16_t port;
 
-    request_stage_t stage;
+    sy_request_stage_t stage;
     
     uint8_t discard_body: 1;
     uint8_t body_done: 1;
@@ -228,55 +229,55 @@ typedef struct request {
     uint8_t response_done: 1;
     uint8_t keep_alive: 1;
 
-    transfer_encoding_t t_encoding;
+    sy_transfer_encoding_t t_encoding;
     int content_length;
     int body_received;
     
-    buffer_t rb;
-    buffer_t sb;
-    struct connection* c;
-    struct connection* uc;
+    sy_buffer_t rb;
+    sy_buffer_t sb;
+    struct sy_connection* c;
+    struct sy_connection* uc;
 
-    int (*in_handler)(struct request* r);
-    int (*out_handler)(struct request* r);
+    int (*in_handler)(struct sy_request* r);
+    int (*out_handler)(struct sy_request* r);
     int status;
     int resource_fd;
     int resource_len;
-} request_t;
+} sy_request_t;
 
 /*
  * Connection
  */
 enum {
     C_SIDE_FRONT,
-    C_SIDE_BACK,
+    C_SIDE_BACK, // TODO
 };
 
-typedef struct connection {
+typedef struct {
     int fd; 
     int side; 
-    julia_epoll_event_t event; 
-    request_t* r;
+    struct epoll_event event; 
+    sy_request_t* r;
     time_t active_time;
     int heap_idx;
-} connection_t;
+} sy_connection_t;
 
-#define HTTP_1_1    (version_t){1, 1}
-#define HTTP_1_0    (version_t){1, 0}
+#define HTTP_1_1    (sy_version_t){1, 1}
+#define HTTP_1_0    (sy_version_t){1, 0}
 
-connection_t* sy_open_connection(int fd);
-connection_t* sy_uwsgi_open_connection(request_t* r, location_t* loc);
-void sy_close_connection(connection_t* c);
+sy_connection_t* sy_open_connection(int fd);
+sy_connection_t* sy_uwsgi_open_connection(sy_request_t* r, sy_location_t* loc);
+void sy_close_connection(sy_connection_t* c);
 int sy_add_listener(int* listen_fd);
 int sy_set_nonblocking(int fd);
-void sy_connection_activate(connection_t* c);
-void sy_connection_expire(connection_t* c);
-bool sy_connection_is_expired(connection_t* c);
-int sy_connection_register(connection_t* c);
-void sy_connection_unregister(connection_t* c);
+void sy_connection_activate(sy_connection_t* c);
+void sy_connection_expire(sy_connection_t* c);
+bool sy_connection_is_expired(sy_connection_t* c);
+int sy_connection_register(sy_connection_t* c);
+void sy_connection_unregister(sy_connection_t* c);
 void sy_connection_sweep(void);
 
-static inline int sy_connection_disable_in(connection_t* c) {
+static inline int sy_connection_disable_in(sy_connection_t* c) {
     if (c->event.events & EVENTS_IN) {
         c->event.events &= ~EVENTS_IN;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -285,7 +286,7 @@ static inline int sy_connection_disable_in(connection_t* c) {
     return 0;
 }
 
-static inline int sy_connection_enable_in(connection_t* c) {
+static inline int sy_connection_enable_in(sy_connection_t* c) {
     if (!(c->event.events & EVENTS_IN)) {
         c->event.events |= EVENTS_IN;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -294,7 +295,7 @@ static inline int sy_connection_enable_in(connection_t* c) {
     return 0;
 }
 
-static inline int sy_connection_disable_out(connection_t* c) {
+static inline int sy_connection_disable_out(sy_connection_t* c) {
     if (c->event.events & EVENTS_OUT) {
         c->event.events &= ~EVENTS_OUT;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -303,7 +304,7 @@ static inline int sy_connection_disable_out(connection_t* c) {
     return 0;
 }
 
-static inline int sy_connection_enable_out(connection_t* c) {
+static inline int sy_connection_enable_out(sy_connection_t* c) {
     if (!(c->event.events & EVENTS_OUT)) {
         c->event.events |= EVENTS_OUT;
         return epoll_ctl(epoll_fd, EPOLL_CTL_MOD,
@@ -312,40 +313,33 @@ static inline int sy_connection_enable_out(connection_t* c) {
     return 0;
 } 
 
-/*
- * Request
- */
-typedef int (*header_processor_t)(request_t* request, int offset);
+
+
+typedef int (*sy_header_processor_t)(sy_request_t* request, int offset);
 void sy_header_map_init(void);
-void sy_request_init(request_t* r, connection_t* c);
-void sy_request_clear(request_t* request);
-void sy_request_release(request_t* request);
-int sy_handle_request(connection_t* c);
-int sy_handle_response(connection_t* c);
-int sy_handle_pass(connection_t* uc);
-int sy_handle_upstream(connection_t* uc);
-int sy_send_response_buffer(request_t* r);
-int sy_send_response_file(request_t* r);
-/*
- * Response
- */
+void sy_request_init(sy_request_t* r, sy_connection_t* c);
+void sy_request_clear(sy_request_t* request);
+void sy_request_release(sy_request_t* request);
+int sy_handle_request(sy_connection_t* c);
+int sy_handle_response(sy_connection_t* c);
+int sy_handle_pass(sy_connection_t* uc);
+int sy_handle_upstream(sy_connection_t* uc);
+int sy_send_response_buffer(sy_request_t* r);
+int sy_send_response_file(sy_request_t* r);
+
 void sy_mime_map_init(void);
 
-int sy_response_build(request_t* r);
-int sy_response_build_err(request_t* request, int err);
+int sy_response_build(sy_request_t* r);
+int sy_response_build_err(sy_request_t* request, int err);
 
-
-/*
- * Parse
- */
-// State machine: request line states
+// state : used for parser
 enum {
-    // Request line states
+    // request line states
     RL_S_BEGIN = 0,
     RL_S_METHOD,
     RL_S_SP_BEFORE_URI,
-    RL_S_URI,
-    RL_S_SP_BEFROE_VERSION,
+    RL_S_URI, 
+    RL_S_SP_BEFROE_VERSION, 
     RL_S_HTTP_H,
     RL_S_HTTP_HT,
     RL_S_HTTP_HTT,
@@ -355,19 +349,19 @@ enum {
     RL_S_HTTP_VERSION_DOT,
     RL_S_HTTP_VERSION_MINOR,
     RL_S_SP_AFTER_VERSION,
-    RL_S_ALMOST_DONE,
-    RL_S_DONE,
+    RL_S_ALMOST_DONE, // CR
+    RL_S_DONE,        // LF
 
-    // Header line states
+    // header line states
     HL_S_BEGIN,
     HL_S_IGNORE,
     HL_S_NAME,
-    HL_S_COLON,
+    HL_S_COLON, // : 
     HL_S_SP_BEFORE_VALUE,
     HL_S_VALUE,
     HL_S_SP_AFTER_VALUE,
-    HL_S_ALMOST_DONE,
-    HL_S_DONE,
+    HL_S_ALMOST_DONE, 
+    HL_S_DONE,       
 
     // URI states
     URI_S_BEGIN,
@@ -387,11 +381,11 @@ enum {
 
 
 void sy_parse_init(void);
-int sy_parse_request_line(request_t* request);
-int sy_parse_header_line(request_t* request);
-int sy_parse_request_body_chunked(request_t* request);
-int sy_parse_request_body_identity(request_t* request);
-int sy_parse_header_accept(request_t* request);
-void sy_parse_header_host(request_t* request);
+int sy_parse_request_line(sy_request_t* request);
+int sy_parse_header_line(sy_request_t* request);
+int sy_parse_request_body_chunked(sy_request_t* request);
+int sy_parse_request_body_identity(sy_request_t* request);
+int sy_parse_header_accept(sy_request_t* request);
+void sy_parse_header_host(sy_request_t* request);
 
 #endif
